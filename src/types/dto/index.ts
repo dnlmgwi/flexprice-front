@@ -139,7 +139,6 @@ export type {
 	SubscriptionPauseResponse,
 	SubscriptionResumeResponse,
 	CreateSubscriptionRequest,
-	CancelSubscriptionPayload,
 	ListSubscriptionsPayload,
 	ListSubscriptionsResponse,
 	EntitlementOverrideRequest,

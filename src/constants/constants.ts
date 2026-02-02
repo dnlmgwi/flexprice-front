@@ -6,6 +6,7 @@ import { BILLING_CADENCE, INVOICE_CADENCE } from '@/models/Invoice';
 import {
 	BILLING_CYCLE,
 	COLLECTION_METHOD,
+	CANCEL_IMMEDIATELY_INVOICE_POLICY,
 	PAYMENT_BEHAVIOR,
 	SUBSCRIPTION_CANCELLATION_TYPE,
 	SUBSCRIPTION_LINE_ITEM_ENTITY_TYPE,
@@ -154,6 +155,11 @@ export const prorationBehaviorOptions = [
 export const cancellationTypeOptions = [
 	{ label: 'Immediate', value: SUBSCRIPTION_CANCELLATION_TYPE.IMMEDIATE },
 	{ label: 'End of Period', value: SUBSCRIPTION_CANCELLATION_TYPE.END_OF_PERIOD },
+];
+
+export const cancelImmediatelyInvoicePolicyOptions = [
+	{ label: 'Generate Invoice', value: CANCEL_IMMEDIATELY_INVOICE_POLICY.GENERATE_INVOICE },
+	{ label: 'Skip', value: CANCEL_IMMEDIATELY_INVOICE_POLICY.SKIP },
 ];
 
 export const subscriptionLineItemEntityTypeOptions = [

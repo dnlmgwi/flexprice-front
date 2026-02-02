@@ -6,6 +6,7 @@ import {
 	SubscriptionPhase,
 	SUBSCRIPTION_PRORATION_BEHAVIOR,
 	SUBSCRIPTION_CANCELLATION_TYPE,
+	CANCEL_IMMEDIATELY_INVOICE_POLICY,
 	PAYMENT_BEHAVIOR,
 	COLLECTION_METHOD,
 	SUBSCRIPTION_LINE_ITEM_ENTITY_TYPE,
@@ -211,6 +212,8 @@ export interface ListSubscriptionsResponse extends QueryFilter, TimeRangeFilter 
 export interface CancelSubscriptionPayload {
 	proration_behavior?: SUBSCRIPTION_PRORATION_BEHAVIOR;
 	cancellation_type?: SUBSCRIPTION_CANCELLATION_TYPE;
+	/** Controls whether to generate a final invoice on immediate cancellation. Defaults to generate_invoice. */
+	cancel_immediately_invoice_policy?: CANCEL_IMMEDIATELY_INVOICE_POLICY;
 	reason?: string;
 }
 
@@ -348,6 +351,8 @@ export interface OverrideLineItemRequest {
 export interface CancelSubscriptionRequest {
 	proration_behavior?: SUBSCRIPTION_PRORATION_BEHAVIOR;
 	cancellation_type: SUBSCRIPTION_CANCELLATION_TYPE;
+	/** Controls whether to generate a final invoice on immediate cancellation. Defaults to generate_invoice. */
+	cancel_immediately_invoice_policy?: CANCEL_IMMEDIATELY_INVOICE_POLICY;
 	reason?: string;
 	suppress_webhook?: boolean;
 }

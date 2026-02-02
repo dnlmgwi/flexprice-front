@@ -9,7 +9,6 @@ import {
 	ResumeSubscriptionPayload,
 	SubscriptionPauseResponse,
 	SubscriptionResumeResponse,
-	CancelSubscriptionPayload,
 	CreateSubscriptionRequest,
 	CancelSubscriptionRequest,
 	CancelSubscriptionResponse,
@@ -88,10 +87,7 @@ class SubscriptionApi {
 	/**
 	 * Cancel subscription
 	 */
-	public static async cancelSubscription(
-		id: string,
-		payload: CancelSubscriptionPayload | CancelSubscriptionRequest,
-	): Promise<void | CancelSubscriptionResponse> {
+	public static async cancelSubscription(id: string, payload: CancelSubscriptionRequest): Promise<void | CancelSubscriptionResponse> {
 		return await AxiosClient.post(`${this.baseUrl}/${id}/cancel`, payload);
 	}
 
