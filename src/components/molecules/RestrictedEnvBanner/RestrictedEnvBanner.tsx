@@ -28,13 +28,19 @@ const RestrictedEnvBanner: React.FC = () => {
 		const days = daysLeft(restriction.expiresAt);
 		return (
 			<>
-				<div className='w-full flex items-center justify-center border-b border-sky-200/80 bg-[#E0F2F7] px-4 py-2'>
-					<span className='text-sm text-slate-700'>
+				<div
+					className='w-full flex items-center justify-center border-b px-4 py-2'
+					style={{
+						background: 'linear-gradient(to right, #EEF4FF, #DDE7FF, #EEF4FF)',
+						borderColor: '#E3ECFF',
+					}}>
+					<span className='text-sm' style={{ color: '#184FC7' }}>
 						Your {envLabel} is active for the next {days} day{days !== 1 ? 's' : ''}. To continue after that,{' '}
 						<button
 							type='button'
 							onClick={() => setIsContactDialogOpen(true)}
-							className='inline-flex items-center gap-1 text-slate-800 underline decoration-slate-500/60 hover:decoration-slate-700'>
+							className='inline-flex items-center gap-1 underline hover:opacity-80'
+							style={{ color: '#184FC7' }}>
 							contact us
 							<ExternalLink className='h-3.5 w-3.5 shrink-0' aria-hidden />
 						</button>
@@ -49,13 +55,19 @@ const RestrictedEnvBanner: React.FC = () => {
 	// Suspended
 	return (
 		<>
-			<div className='w-full flex items-center justify-center border-b border-red-200/80 bg-[#FEF2F2] px-4 py-2'>
-				<span className='text-sm text-red-900/90'>
+			<div
+				className='w-full flex items-center justify-center border-b px-4 py-2'
+				style={{
+					background: 'linear-gradient(to right, #FFEEEE, #FFEAEA, #FFEEEE)',
+					borderColor: '#FFDDDD',
+				}}>
+				<span className='text-sm' style={{ color: '#C81B1B' }}>
 					Your {envLabel} is temporarily closed. To continue,{' '}
 					<button
 						type='button'
 						onClick={() => setIsContactDialogOpen(true)}
-						className='inline-flex items-center gap-1 text-red-900 underline decoration-red-400/70 hover:decoration-red-600'>
+						className='inline-flex items-center gap-1 underline hover:opacity-80'
+						style={{ color: '#C81B1B' }}>
 						contact us
 						<ExternalLink className='h-3.5 w-3.5 shrink-0' aria-hidden />
 					</button>
