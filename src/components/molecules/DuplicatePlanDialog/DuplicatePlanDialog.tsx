@@ -108,11 +108,11 @@ const DuplicatePlanDialog: FC<DuplicatePlanDialogProps> = ({
 	const handleSubmit = () => {
 		if (!validate() || !plan) return;
 
-		let metadata: ClonePlanRequest['metadata'] = { source: 'clone', ...plan.metadata };
+		let metadata: ClonePlanRequest['metadata'] = { ...plan.metadata, source: 'clone' };
 		if (metadataString.trim()) {
 			try {
 				const parsed = JSON.parse(metadataString);
-				metadata = { source: 'clone', ...plan.metadata, ...parsed };
+				metadata = { ...plan.metadata, ...parsed, source: 'clone' };
 			} catch {
 				return;
 			}
