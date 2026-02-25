@@ -400,6 +400,12 @@ const FeatureDetails = () => {
 												<span className='text-gray-800 text-sm'>{data?.meter?.aggregation.bucket_size || '--'}</span>
 											</div>
 										)}
+									{data?.meter?.aggregation?.group_by && (
+										<div className='grid grid-cols-[200px_1fr] items-center'>
+											<span className='text-gray-500 text-sm'>Group by</span>
+											<span className='text-gray-800 text-sm'>{data.meter.aggregation.group_by}</span>
+										</div>
+									)}
 								</div>
 							</div>
 						</div>

@@ -14,6 +14,7 @@ export interface MeterAggregation {
 	field?: string;
 	multiplier?: number;
 	bucket_size?: BUCKET_SIZE;
+	group_by?: string;
 }
 
 export interface CreateMeterRequest {

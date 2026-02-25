@@ -269,9 +269,10 @@ const CustomerSubscriptionDetailsPage: FC = () => {
 
 				{subscriptionDetails?.commitment_amount && (
 					<div className='w-full flex justify-between items-center'>
-						<p className='text-[#71717A] text-sm'>Commitment Amount</p>
+						<p className='text-[#71717A] text-sm'>Commitment</p>
 						<p className='text-[#09090B] text-sm'>
-							{getCurrencySymbol(subscriptionDetails?.currency || '')} {subscriptionDetails?.commitment_amount || '0'}
+							{getCurrencySymbol(subscriptionDetails?.currency || '')} {subscriptionDetails?.commitment_amount || '0'}/{' '}
+							{getCommitmentPeriodLabel(subscriptionDetails)}
 						</p>
 					</div>
 				)}

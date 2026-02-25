@@ -1,3 +1,4 @@
+export { AuthTab } from './authTabs';
 export { default as Auth } from './Auth';
 export { default as EmailVerification } from './EmailVerification';
 export { default as ForgotPasswordForm } from './ForgotPasswordForm';
@@ -5,5 +6,6 @@ export { default as GoogleSignin } from './GoogleSignin';
 export { default as LandingSection } from './LandingSection';
 export { default as LoginForm } from './LoginForm';
 export { default as ResendVerification } from './ResendVerification';
+export { default as ResetPasswordForm } from './ResetPasswordForm';
 export { default as SignupConfirmation } from './SignupConfirmation';
 export { default as SignupForm } from './SignupForm';

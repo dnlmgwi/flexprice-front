@@ -157,6 +157,7 @@ interface FeatureFormState {
 	showUnitName: boolean;
 	showEventFilters: boolean;
 	showBucketSize: boolean;
+	showGroupBy: boolean;
 }
 
 type FeatureFormData = Omit<CreateFeatureRequest, 'name' | 'type' | 'meter'> & {
@@ -178,6 +179,7 @@ const useFeatureForm = () => {
 		showUnitName: false,
 		showEventFilters: false,
 		showBucketSize: false,
+		showGroupBy: false,
 	});
 
 	const updateFeatureData = useCallback((updates: Partial<FeatureFormData>) => {
@@ -620,6 +622,21 @@ const AggregationSection = ({
 		[onUpdateFeature, meter],
 	);
 
+	const handleGroupByChange = useCallback(
+		(value: string) => {
+			onUpdateFeature({
+				meter: {
+					...meter,
+					aggregation: {
+						...(meter?.aggregation ?? { type: METER_AGGREGATION_TYPE.SUM }),
+						group_by: value.trim() || undefined,
+					},
+				},
+			});
+		},
+		[onUpdateFeature, meter],
+	);
+
 	const showFieldInput = meter?.aggregation?.type !== METER_AGGREGATION_TYPE.COUNT;
 	const showMultiplierInput = meter?.aggregation?.type === METER_AGGREGATION_TYPE.SUM_WITH_MULTIPLIER;
 
@@ -661,9 +678,14 @@ const AggregationSection = ({
 				)}
 
 				<div className='flex flex-col gap-2'>
-					{!formState.showBucketSize ? (
-						<AddChargesButton label='Bucket size' onClick={() => onUpdateFormState({ showBucketSize: true })} className='self-start' />
-					) : null}
+					<div className='flex flex-wrap items-center gap-2'>
+						{!formState.showBucketSize ? (
+							<AddChargesButton label='Bucket size' onClick={() => onUpdateFormState({ showBucketSize: true })} />
+						) : null}
+						{meter?.aggregation?.type === METER_AGGREGATION_TYPE.MAX && !formState.showGroupBy ? (
+							<AddChargesButton label='Group by' onClick={() => onUpdateFormState({ showGroupBy: true })} />
+						) : null}
+					</div>
 					{formState.showBucketSize ? (
 						<Select
 							options={BUCKET_SIZE_OPTIONS}
@@ -672,6 +694,15 @@ const AggregationSection = ({
 							placeholder=''
 							description='The size of the window to aggregate over. eg. 15MIN, 30MIN, HOUR, etc.'
 							value={meter?.aggregation?.bucket_size || undefined}
+						/>
+					) : null}
+					{meter?.aggregation?.type === METER_AGGREGATION_TYPE.MAX && formState.showGroupBy ? (
+						<Input
+							value={meter?.aggregation?.group_by || ''}
+							onChange={handleGroupByChange}
+							label='Group by'
+							placeholder='e.g. user_id, tenant_id'
+							description='Field to group aggregation by. Must be a string (e.g. event property name).'
 						/>
 					) : null}
 				</div>
@@ -751,6 +782,7 @@ const AddFeaturePage = () => {
 								field: featureData.meter.aggregation?.field || '',
 								multiplier: featureData.meter.aggregation?.multiplier,
 								bucket_size: featureData.meter.aggregation?.bucket_size,
+								group_by: featureData.meter.aggregation?.group_by,
 							},
 							reset_usage: featureData.meter.reset_usage || METER_USAGE_RESET_PERIOD.BILLING_PERIOD,
 							filters: featureData.meter.filters?.filter((filter) => filter.key !== '' && filter.values.length > 0),

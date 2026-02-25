@@ -14,7 +14,7 @@ import {
 	SortDirection,
 	FilterCondition,
 } from '@/types/common/QueryBuilder';
-import formatDate from '@/utils/common/format_date';
+import { formatDateWithMilliseconds } from '@/utils/common/format_date';
 import { WORKFLOW_TYPE_DISPLAY_NAMES } from '@/constants/workflow';
 import type { WorkflowExecutionDTO } from '@/types/dto';
 
@@ -125,13 +125,11 @@ const WorkflowsPage = () => {
 			},
 			{
 				title: 'Start time',
-				render: (row) => <TooltipCell tooltipContent={formatDate(row.start_time)} tooltipText={row.start_time || '—'} />,
+				render: (row) => <span>{row.start_time ? formatDateWithMilliseconds(row.start_time) : '—'}</span>,
 			},
 			{
 				title: 'End time',
-				render: (row) => (
-					<TooltipCell tooltipContent={row.close_time ? formatDate(row.close_time) : '—'} tooltipText={row.close_time || '—'} />
-				),
+				render: (row) => <span>{row.close_time ? formatDateWithMilliseconds(row.close_time) : '—'}</span>,
 			},
 			{
 				title: 'Duration',

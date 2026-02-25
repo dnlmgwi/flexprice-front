@@ -4,15 +4,11 @@ import LoginForm from './LoginForm';
 import flexpriceLogo from '../../../assets/comicon.png';
 import SignupForm from './SignupForm';
 import ForgotPasswordForm from './ForgotPasswordForm';
+import ResetPasswordForm from './ResetPasswordForm';
 import AuthService from '@/core/auth/AuthService';
 import LandingSection from './LandingSection';
 import RegionSelector from '@/components/molecules/RegionSelector/RegionSelector';
-
-enum AuthTab {
-	LOGIN = 'login',
-	SIGNUP = 'signup',
-	FORGOT_PASSWORD = 'forgot-password',
-}
+import { AuthTab } from './authTabs';
 
 const AuthPage: React.FC = () => {
 	const navigate = useNavigate();
@@ -22,6 +18,10 @@ const AuthPage: React.FC = () => {
 	const [currentTab, setCurrentTab] = useState<AuthTab>(AuthTab.LOGIN);
 
 	useEffect(() => {
+		const searchParams = new URLSearchParams(location.search);
+		if (searchParams.get('tab') === AuthTab.RESET_PASSWORD) {
+			return;
+		}
 		const fetchUser = async () => {
 			const tokenStr = await AuthService.getAcessToken();
 			if (tokenStr) {
@@ -29,13 +29,13 @@ const AuthPage: React.FC = () => {
 			}
 		};
 		fetchUser();
-	}, []);
+	}, [location.search, navigate]);
 
 	// Parse query parameters on component mount and tab changes
 	useEffect(() => {
 		const searchParams = new URLSearchParams(location.search);
 		const tab = searchParams.get('tab');
-		if (tab === AuthTab.SIGNUP || tab === AuthTab.FORGOT_PASSWORD) {
+		if (tab === AuthTab.SIGNUP || tab === AuthTab.FORGOT_PASSWORD || tab === AuthTab.RESET_PASSWORD) {
 			setCurrentTab(tab as AuthTab);
 		} else {
 			setCurrentTab(AuthTab.LOGIN);
@@ -53,21 +53,28 @@ const AuthPage: React.FC = () => {
 			case AuthTab.SIGNUP:
 				return (
 					<>
-						<SignupForm switchTab={(tab: string) => switchTab(tab as AuthTab)} />
+						<SignupForm switchTab={switchTab} />
 					</>
 				);
 
 			case AuthTab.FORGOT_PASSWORD:
 				return (
 					<>
-						<ForgotPasswordForm switchTab={(tab: string) => switchTab(tab as AuthTab)} />
+						<ForgotPasswordForm switchTab={switchTab} />
+					</>
+				);
+
+			case AuthTab.RESET_PASSWORD:
+				return (
+					<>
+						<ResetPasswordForm switchTab={switchTab} />
 					</>
 				);
 
 			default: // Login case
 				return (
 					<>
-						<LoginForm switchTab={(tab: string) => switchTab(tab as AuthTab)} />
+						<LoginForm switchTab={switchTab} />
 					</>
 				);
 		}
@@ -119,6 +126,12 @@ const AuthPage: React.FC = () => {
 							<>
 								<h2 className='text-3xl font-medium text-center text-gray-800 mb-2'>Forgot your password?</h2>
 								<p className='text-center text-gray-600 mb-8'>Enter your email to reset your password.</p>
+							</>
+						)}
+						{currentTab === AuthTab.RESET_PASSWORD && (
+							<>
+								<h2 className='text-3xl font-medium text-center text-gray-800 mb-2'>Set a new password</h2>
+								<p className='text-center text-gray-600 mb-8'>Enter your new password below.</p>
 							</>
 						)}
 

@@ -6,6 +6,7 @@ export interface Meter extends BaseModel {
 		type: METER_AGGREGATION_TYPE;
 		multiplier?: number;
 		bucket_size?: BUCKET_SIZE;
+		group_by?: string;
 	};
 	readonly event_name: string;
 	readonly filters: Array<{
