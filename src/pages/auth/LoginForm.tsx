@@ -10,9 +10,10 @@ import AuthApi from '@/api/AuthApi';
 import { NODE_ENV, NodeEnv } from '@/types';
 import { RouteNames } from '@/core/routes/Routes';
 import GoogleSignin from './GoogleSignin';
+import { AuthTab } from './authTabs';
 
 interface LoginFormProps {
-	switchTab: (tab: string) => void;
+	switchTab: (tab: AuthTab) => void;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ switchTab }) => {
@@ -90,7 +91,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ switchTab }) => {
 						<label htmlFor='password' className='block text-sm font-medium text-gray-700'>
 							Password
 						</label>
-						<button type='button' onClick={() => switchTab('forgot-password')} className='text-sm text-grey-600 hover:underline'>
+						<button type='button' onClick={() => switchTab(AuthTab.FORGOT_PASSWORD)} className='text-sm text-grey-600 hover:underline'>
 							Forgot your password?
 						</button>
 					</div>
@@ -128,7 +129,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ switchTab }) => {
 
 			<p className='mt-6 text-center text-sm text-gray-600'>
 				Don't have an account?{' '}
-				<button onClick={() => switchTab('signup')} className='text-grey-600 underline font-medium'>
+				<button onClick={() => switchTab(AuthTab.SIGNUP)} className='text-grey-600 underline font-medium'>
 					Sign up
 				</button>
 			</p>

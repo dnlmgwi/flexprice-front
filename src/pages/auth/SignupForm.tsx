@@ -10,8 +10,10 @@ import { RouteNames } from '@/core/routes/Routes';
 import { useNavigate, useSearchParams } from 'react-router';
 import { NODE_ENV, NodeEnv } from '@/types';
 import GoogleSignin from './GoogleSignin';
+import { AuthTab } from './authTabs';
+
 interface SignupFormProps {
-	switchTab: (tab: string) => void;
+	switchTab: (tab: AuthTab) => void;
 }
 
 interface SignupData {
@@ -54,7 +56,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ switchTab }) => {
 		onSuccess: (data) => {
 			if (NODE_ENV != NodeEnv.SELF_HOSTED) {
 				toast.success('Account created successfully! Please check your email to confirm your account.');
-				switchTab('login');
+				switchTab(AuthTab.LOGIN);
 			} else {
 				// Store token in a consistent format
 				const tokenData = {
@@ -199,7 +201,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ switchTab }) => {
 
 			<p className='mt-6 text-center text-sm text-gray-600'>
 				Already have an account?{' '}
-				<button onClick={() => switchTab('login')} className='text-grey-600 underline font-medium'>
+				<button onClick={() => switchTab(AuthTab.LOGIN)} className='text-grey-600 underline font-medium'>
 					Log in
 				</button>
 			</p>
