@@ -16,6 +16,9 @@ export interface CreateFeatureRequest {
 	metadata?: Metadata;
 	unit_singular?: string;
 	unit_plural?: string;
+	display_unit_singular?: string;
+	display_unit_plural?: string;
+	unit_conversion_factor?: number;
 	alert_settings?: AlertSettings;
 }
 
@@ -25,6 +28,9 @@ export interface UpdateFeatureRequest {
 	metadata?: Metadata;
 	unit_singular?: string;
 	unit_plural?: string;
+	display_unit_singular?: string;
+	display_unit_plural?: string;
+	unit_conversion_factor?: number;
 	filters?: MeterFilter[];
 	alert_settings?: AlertSettings;
 }
