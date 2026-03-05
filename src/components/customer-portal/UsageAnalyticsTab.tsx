@@ -119,23 +119,27 @@ const UsageBreakdownTable: React.FC<{ items: UsageAnalyticItem[] }> = ({ items }
 		{
 			title: 'Total Usage',
 			render: (row: UsageAnalyticItem) => {
-				let unit = '';
-				if (row.unit) {
-					if (row.total_usage !== 1 && row.unit_plural) {
-						// Use the provided plural form when total_usage !== 1 and unit_plural exists
-						unit = ` ${row.unit_plural}`;
-					} else if (row.total_usage !== 1 && !row.unit_plural) {
-						// Fall back to appending 's' only when unit_plural is absent and total_usage !== 1
-						unit = ` ${row.unit}s`;
-					} else {
-						// Use singular form (total_usage === 1)
-						unit = ` ${row.unit}`;
-					}
-				}
+				const useDisplayValue = row.total_usage_display !== '' && row.total_usage_display != null;
+				const displayNum = useDisplayValue
+					? Number(parseFloat((row.total_usage_display || '0').replace(/,/g, '')))
+					: (row.total_usage ?? 0);
+				const isSingular = displayNum === 1;
+
+				const unitLabel = row.reporting_unit
+					? isSingular
+						? (row.reporting_unit.unit_singular ?? row.reporting_unit.unit_plural ?? '')
+						: (row.reporting_unit.unit_plural ?? row.reporting_unit.unit_singular ?? '')
+					: row.unit
+						? row.total_usage === 1
+							? row.unit
+							: (row.unit_plural ?? row.unit)
+						: '';
+				const suffix = unitLabel ? ` ${unitLabel}` : '';
+
 				return (
 					<span>
-						{formatNumber(row.total_usage)}
-						{unit}
+						{useDisplayValue ? row.total_usage_display : formatNumber(row.total_usage)}
+						{suffix}
 					</span>
 				);
 			},

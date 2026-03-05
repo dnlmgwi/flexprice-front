@@ -503,25 +503,27 @@ const UsageDataTable: React.FC<{ items: UsageAnalyticItem[] }> = ({ items }) => 
 		{
 			title: renderSortableHeader('total_usage', 'Total Usage'),
 			render: (row: UsageAnalyticItem) => {
-				if (row.total_usage_display !== '' && row.total_usage_display != null && row.reporting_unit != null) {
-					const displayNum = Number(parseFloat((row.total_usage_display || '0').replace(/,/g, '')));
-					const isSingular = displayNum === 1;
-					const reportingUnitLabel = isSingular
+				const useDisplayValue = row.total_usage_display !== '' && row.total_usage_display != null;
+				const displayNum = useDisplayValue
+					? Number(parseFloat((row.total_usage_display || '0').replace(/,/g, '')))
+					: (row.total_usage ?? 0);
+				const isSingular = displayNum === 1;
+
+				const unitLabel = row.reporting_unit
+					? isSingular
 						? (row.reporting_unit.unit_singular ?? row.reporting_unit.unit_plural ?? '')
-						: (row.reporting_unit.unit_plural ?? row.reporting_unit.unit_singular ?? '');
-					const suffix = reportingUnitLabel ? ` ${reportingUnitLabel}` : '';
-					return (
-						<span>
-							{row.total_usage_display}
-							{suffix}
-						</span>
-					);
-				}
-				const unit = row.unit ? ` ${row.total_usage === 1 ? row.unit : (row.unit_plural ?? row.unit)}` : '';
+						: (row.reporting_unit.unit_plural ?? row.reporting_unit.unit_singular ?? '')
+					: row.unit
+						? row.total_usage === 1
+							? row.unit
+							: (row.unit_plural ?? row.unit)
+						: '';
+				const suffix = unitLabel ? ` ${unitLabel}` : '';
+
 				return (
 					<span>
-						{formatNumber(row.total_usage)}
-						{unit}
+						{useDisplayValue ? row.total_usage_display : formatNumber(row.total_usage)}
+						{suffix}
 					</span>
 				);
 			},
