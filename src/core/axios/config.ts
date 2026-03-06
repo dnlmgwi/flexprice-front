@@ -27,7 +27,7 @@ const axiosClient: AxiosInstance = axios.create({
 
 axiosClient.interceptors.request.use(
 	async (config: InternalAxiosRequestConfig) => {
-		// Customer portal mode: only use session token, skip JWT and env ID
+		// Customer portal mode: only X-Session-Token needed
 		if (runtimeCredentials) {
 			config.headers['X-Session-Token'] = runtimeCredentials.sessionToken;
 			return config;

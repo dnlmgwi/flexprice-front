@@ -13,6 +13,7 @@ import { WalletResponse, WalletTransactionResponse } from '@/types/dto/Wallet';
 import { GetUsageAnalyticsResponse } from '@/types/dto/Events';
 import { GetDetailedCostAnalyticsResponse } from '@/types/dto/Cost';
 import { generateQueryParams } from '@/utils/common/api_helper';
+import { PortalConfig, DEFAULT_PORTAL_CONFIG, deepMergePortalConfig } from '@/types/dto/PortalConfig';
 
 /**
  * CustomerPortalApi - Customer-facing dashboard APIs
@@ -127,6 +128,23 @@ class CustomerPortalApi {
 		const { walletId, limit = 10, offset = 0 } = payload;
 		const url = generateQueryParams(`${this.baseUrl}/wallets/${walletId}/transactions`, { limit, offset });
 		return await AxiosClient.get<WalletTransactionResponse>(url);
+	}
+	/**
+	 * Get the portal configuration for this tenant.
+	 * Backend merges tenant-specific config with defaults and returns the resolved PortalConfig.
+	 * Falls back to DEFAULT_PORTAL_CONFIG on any error (no config stored, expired token, etc.)
+	 */
+	public static async getConfig(): Promise<PortalConfig> {
+		try {
+			const response = await AxiosClient.get<{ value: Partial<PortalConfig> }>(`${this.baseUrl}/config`);
+			if (response?.value) {
+				return deepMergePortalConfig(DEFAULT_PORTAL_CONFIG, response.value);
+			}
+			return DEFAULT_PORTAL_CONFIG;
+		} catch {
+			// No config stored yet or network error — use bundled defaults silently
+			return DEFAULT_PORTAL_CONFIG;
+		}
 	}
 }
 
