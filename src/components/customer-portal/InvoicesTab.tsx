@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import CustomerPortalApi from '@/api/CustomerPortalApi';
+import { portalInvoicesQueryKey } from '@/components/customer-portal/queryKeys';
 import { Card, Chip } from '@/components/atoms';
 import { Invoice, INVOICE_STATUS } from '@/models/Invoice';
 import { PAYMENT_STATUS } from '@/constants/payment';
@@ -42,7 +43,7 @@ const InvoicesTab = () => {
 		isLoading,
 		isError,
 	} = useQuery({
-		queryKey: ['portal-invoices-tab'],
+		queryKey: portalInvoicesQueryKey,
 		queryFn: () => CustomerPortalApi.getInvoices({ limit: 100, offset: 0 }),
 	});
 

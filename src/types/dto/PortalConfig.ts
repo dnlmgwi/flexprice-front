@@ -18,7 +18,15 @@ export interface PortalTheme {
 
 // ─── Date Presets ─────────────────────────────────────────────────────────────
 
-export type DatePreset = 'today' | 'last_7_days' | 'last_30_days' | 'current_month' | 'last_month';
+export const DatePreset = {
+	Today: 'today',
+	Last7Days: 'last_7_days',
+	Last30Days: 'last_30_days',
+	CurrentMonth: 'current_month',
+	LastMonth: 'last_month',
+} as const;
+
+export type DatePreset = (typeof DatePreset)[keyof typeof DatePreset];
 
 // ─── Widget Types ─────────────────────────────────────────────────────────────
 
@@ -118,8 +126,8 @@ export const DEFAULT_PORTAL_CONFIG: PortalConfig = {
 					enabled: true,
 					order: 2,
 					usage_graph: {
-						date_presets: ['today', 'last_7_days', 'last_30_days', 'current_month', 'last_month'],
-						default_preset: 'last_7_days',
+						date_presets: [DatePreset.Today, DatePreset.Last7Days, DatePreset.Last30Days, DatePreset.CurrentMonth, DatePreset.LastMonth],
+						default_preset: DatePreset.Last7Days,
 						allow_custom_date_range: true,
 						feature_filter_mode: 'all',
 					},

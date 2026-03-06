@@ -43,10 +43,9 @@ const DEFAULT_CONFIG: MetricCardsConfig = {
  * Uses the same MetricCard molecule as the admin CostAnalytics page.
  * auto-fill grid ensures all cards sit on one line at full width.
  */
-const MetricCardsWidget = ({ analyticsParams, config = DEFAULT_CONFIG }: MetricCardsWidgetProps) => {
-	const showCustom = config.show_custom_metrics;
-	const showRevenue = config.show_revenue_metric;
-	const showCost = config.show_cost_metrics;
+const MetricCardsWidget = ({ analyticsParams, config }: MetricCardsWidgetProps) => {
+	const mergedConfig: MetricCardsConfig = { ...DEFAULT_CONFIG, ...config };
+	const { show_custom_metrics: showCustom, show_revenue_metric: showRevenue, show_cost_metrics: showCost } = mergedConfig;
 
 	// ── Revenue analytics (custom_analytics[]) ───────────────────────────────
 	const {

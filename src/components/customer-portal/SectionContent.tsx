@@ -1,10 +1,12 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { endOfDay, startOfDay } from 'date-fns';
 import CustomerPortalApi from '@/api/CustomerPortalApi';
 import { SectionConfig, TabConfig, DatePreset, UsageGraphConfig } from '@/types/dto/PortalConfig';
 import { DashboardAnalyticsRequest } from '@/types';
 import { WindowSize } from '@/models';
+import { DateRangePicker } from '@/components/atoms';
 import TabRenderer from './TabRenderer';
 
 interface SectionContentProps {
@@ -14,41 +16,42 @@ interface SectionContentProps {
 // ─── Date Preset Labels & Range Calculator ────────────────────────────────────
 
 const DATE_PRESET_LABELS: Record<DatePreset, string> = {
-	today: 'Today',
-	last_7_days: '7d',
-	last_30_days: '30d',
-	current_month: 'This Month',
-	last_month: 'Last Month',
+	[DatePreset.Today]: 'Today',
+	[DatePreset.Last7Days]: '7d',
+	[DatePreset.Last30Days]: '30d',
+	[DatePreset.CurrentMonth]: 'This Month',
+	[DatePreset.LastMonth]: 'Last Month',
 };
 
 function calculateDateRange(preset: DatePreset): { start_time: string; end_time: string } {
 	const now = new Date();
 	const end = now.toISOString();
 	switch (preset) {
-		case 'today': {
+		case DatePreset.Today: {
 			const start = new Date(now);
 			start.setHours(0, 0, 0, 0);
 			return { start_time: start.toISOString(), end_time: end };
 		}
-		case 'last_7_days': {
+		case DatePreset.Last7Days: {
 			const start = new Date(now);
 			start.setDate(start.getDate() - 7);
 			return { start_time: start.toISOString(), end_time: end };
 		}
-		case 'last_30_days': {
+		case DatePreset.Last30Days: {
 			const start = new Date(now);
 			start.setDate(start.getDate() - 30);
 			return { start_time: start.toISOString(), end_time: end };
 		}
-		case 'current_month':
+		case DatePreset.CurrentMonth:
 			return { start_time: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(), end_time: end };
-		case 'last_month': {
+		case DatePreset.LastMonth: {
 			const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 			const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
 			return { start_time: start.toISOString(), end_time: endOfLastMonth.toISOString() };
 		}
-		default:
+		default: {
 			return { start_time: new Date(Date.now() - 7 * 86400000).toISOString(), end_time: end };
+		}
 	}
 }
 
@@ -91,23 +94,17 @@ const SectionDateFilter = ({
 		</div>
 		{/* Custom Date Range */}
 		{usageGraphConfig.allow_custom_date_range && (
-			<div className='flex items-center gap-2'>
-				<input
-					type='date'
-					value={customStart ? customStart.slice(0, 10) : ''}
-					onChange={(e) => (e.target.value ? onCustomStartChange(new Date(e.target.value).toISOString()) : onCustomStartChange(''))}
-					className='text-xs border border-[#E9E9E9] rounded-md px-2 py-1.5 text-zinc-700 bg-white focus:outline-none focus:ring-1 focus:ring-zinc-300'
-				/>
-				<span className='text-xs text-zinc-400'>to</span>
-				<input
-					type='date'
-					value={customEnd ? customEnd.slice(0, 10) : ''}
-					onChange={(e) =>
-						e.target.value ? onCustomEndChange(new Date(e.target.value + 'T23:59:59').toISOString()) : onCustomEndChange('')
-					}
-					className='text-xs border border-[#E9E9E9] rounded-md px-2 py-1.5 text-zinc-700 bg-white focus:outline-none focus:ring-1 focus:ring-zinc-300'
-				/>
-			</div>
+			<DateRangePicker
+				startDate={customStart ? new Date(customStart) : undefined}
+				endDate={customEnd ? new Date(customEnd) : undefined}
+				placeholder='Select range'
+				className='w-[260px] h-9 text-xs'
+				popoverTriggerClassName='[&_button]:h-9 [&_button]:text-xs [&_button]:rounded-md'
+				onChange={({ startDate, endDate }) => {
+					onCustomStartChange(startDate ? startOfDay(startDate).toISOString() : '');
+					onCustomEndChange(endDate ? endOfDay(endDate).toISOString() : '');
+				}}
+			/>
 		)}
 	</div>
 );
@@ -129,7 +126,7 @@ const SectionContent = ({ section }: SectionContentProps) => {
 	const usageGraphTab: TabConfig | undefined = enabledTabs.find((t) => t.type === 'usage_graph');
 	const hasAnalytics = enabledTabs.some((t) => t.type === 'usage_graph' || t.type === 'metric_cards');
 
-	const defaultPreset = usageGraphTab?.usage_graph?.default_preset ?? 'last_7_days';
+	const defaultPreset = usageGraphTab?.usage_graph?.default_preset ?? DatePreset.Last7Days;
 	const [selectedPreset, setSelectedPreset] = useState<DatePreset>(defaultPreset);
 	const [customStart, setCustomStart] = useState('');
 	const [customEnd, setCustomEnd] = useState('');

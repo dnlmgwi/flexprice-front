@@ -9,6 +9,7 @@ import { Loader } from '@/components/atoms';
 import { PortalHeader } from '@/components/customer-portal';
 import { PortalConfigProvider, usePortalConfig } from '@/context/PortalConfigContext';
 import SectionContent from '@/components/customer-portal/SectionContent';
+import { portalInvoicesQueryKey } from '@/components/customer-portal/queryKeys';
 import { SectionConfig } from '@/types/dto/PortalConfig';
 import { cn } from '@/lib/utils';
 
@@ -58,7 +59,7 @@ const CustomerPortalInner = () => {
 	});
 
 	const { data: invoicesData } = useQuery({
-		queryKey: ['portal-invoices-tab'],
+		queryKey: portalInvoicesQueryKey,
 		queryFn: () => CustomerPortalApi.getInvoices({ limit: 100, offset: 0 }),
 	});
 
