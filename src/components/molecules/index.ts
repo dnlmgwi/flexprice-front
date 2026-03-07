@@ -140,7 +140,7 @@ export type { DropdownMenuOption } from './DropdownMenu';
 export { ChargeValueCell } from './ChargeValueCell';
 
 // Query & Search
-export { QueryBuilder, FilterPopover, SortDropdown, FilterMultiSelect } from './QueryBuilder';
+export { QueryBuilder, PropertyFilterQueryBuilder, FilterPopover, SortDropdown, FilterMultiSelect } from './QueryBuilder';
 export type { FilterCondition, FilterField, FilterFieldType, FilterOperator, DataType, SortDirection } from './QueryBuilder';
 export { sanitizeFilterConditions, sanitizeSortConditions } from './QueryBuilder';
 

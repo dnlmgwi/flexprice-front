@@ -1,4 +1,4 @@
-import { Button, Checkbox, FormHeader, Input, Select, SelectFeature, Sheet, Spacer, Toggle } from '@/components/atoms';
+import { Button, Checkbox, Dialog, FormHeader, Input, Select, SelectFeature, Sheet, Spacer, Toggle } from '@/components/atoms';
 import { getFeatureIcon } from '@/components/atoms/SelectFeature/SelectFeature';
 import { AddChargesButton } from '@/components/organisms/PlanForm/SetupChargesSection';
 
@@ -7,9 +7,10 @@ import { Entitlement, ENTITLEMENT_ENTITY_TYPE, ENTITLEMENT_USAGE_RESET_PERIOD } 
 import Feature, { FEATURE_TYPE } from '@/models/Feature';
 import { METER_USAGE_RESET_PERIOD } from '@/models/Meter';
 import EntitlementApi from '@/api/EntitlementApi';
+import FeatureApi from '@/api/FeatureApi';
 import { CreateBulkEntitlementRequest, CreateEntitlementRequest } from '@/types/dto/Entitlement';
-import { useMutation } from '@tanstack/react-query';
-import { X } from 'lucide-react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Calculator, X } from 'lucide-react';
 import { FC, useState, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 
@@ -114,6 +115,118 @@ const validateEntitlement = (activeFeature: Feature | null, tempEntitlement: Par
 	}
 };
 
+/** Unit Value = Display Value × Conversion Factor. Use these for all conversions. */
+const DISPLAY_VALUE_FORMULA = {
+	/** displayValue = unitValue / conversionRate */
+	toDisplay: (unitValue: number, conversionRate: number) => (conversionRate !== 0 ? unitValue / conversionRate : null),
+	/** unitValue = displayValue * conversionRate */
+	toUnit: (displayValue: number, conversionRate: number) => displayValue * conversionRate,
+} as const;
+
+interface DisplayValueCalculatorDialogProps {
+	isOpen: boolean;
+	onOpenChange: (open: boolean) => void;
+	unitValue?: number;
+	reportingUnit?: { unit_singular?: string; unit_plural?: string; conversion_rate?: string } | null;
+	baseUnitPlural?: string;
+	/** Called when OK is pressed with the computed unit value; use to populate the entitlement value field */
+	onConfirm?: (unitValue: number) => void;
+}
+
+const DisplayValueCalculatorDialog: FC<DisplayValueCalculatorDialogProps> = ({
+	isOpen,
+	onOpenChange,
+	unitValue,
+	reportingUnit,
+	baseUnitPlural = 'units',
+	onConfirm,
+}) => {
+	// User enters display value; we compute unit value = displayValue * conversionRate
+	const [displayValueInput, setDisplayValueInput] = useState<string>('');
+
+	useEffect(() => {
+		if (isOpen && unitValue != null && reportingUnit?.conversion_rate != null) {
+			const rate = parseFloat(reportingUnit.conversion_rate);
+			if (!Number.isNaN(rate) && rate !== 0) {
+				const display = DISPLAY_VALUE_FORMULA.toDisplay(unitValue, rate);
+				setDisplayValueInput(String(display));
+				return;
+			}
+		}
+		if (isOpen) setDisplayValueInput('');
+	}, [isOpen, unitValue, reportingUnit?.conversion_rate]);
+
+	const conversionRateNum =
+		reportingUnit?.conversion_rate != null && reportingUnit.conversion_rate !== '' ? parseFloat(reportingUnit.conversion_rate) : null;
+	const displayValueNum = displayValueInput.trim() === '' ? null : parseFloat(displayValueInput.replace(/,/g, ''));
+	const isValidDisplay = displayValueNum != null && !Number.isNaN(displayValueNum) && displayValueNum >= 0;
+	const computedUnitValue =
+		isValidDisplay && conversionRateNum != null && conversionRateNum !== 0 && !Number.isNaN(conversionRateNum)
+			? DISPLAY_VALUE_FORMULA.toUnit(displayValueNum, conversionRateNum)
+			: null;
+	const displayUnitPlural = reportingUnit?.unit_plural ?? baseUnitPlural;
+
+	if (!reportingUnit) {
+		return (
+			<Dialog isOpen={isOpen} onOpenChange={onOpenChange} title='Display value'>
+				<p className='text-sm text-muted-foreground'>No display unit configured for this feature.</p>
+			</Dialog>
+		);
+	}
+
+	const usageLimitDisplay = computedUnitValue != null ? computedUnitValue.toLocaleString(undefined, { maximumFractionDigits: 10 }) : '—';
+
+	return (
+		<Dialog
+			isOpen={isOpen}
+			onOpenChange={onOpenChange}
+			title='Set Entitlement in Display Units'
+			description={
+				<>
+					Enter a value in <span className='font-semibold'>{displayUnitPlural}</span> to see the equivalent usage limit in{' '}
+					<span className='font-semibold'>{baseUnitPlural}</span>.
+				</>
+			}>
+			<div className='space-y-4'>
+				<Input
+					label='Value in Display Unit'
+					placeholder='Enter Value'
+					value={displayValueInput}
+					onChange={setDisplayValueInput}
+					variant='formatted-number'
+					suffix={<span className='text-muted-foreground text-xs'>{displayUnitPlural}</span>}
+				/>
+
+				{computedUnitValue != null && (
+					<div className='rounded-md border border-gray-200 bg-white p-4'>
+						<p className='text-sm'>
+							<span className='font-medium text-gray-900'>Calculated Usage Limit:</span>{' '}
+							<span className='font-semibold text-blue-600'>{usageLimitDisplay}</span>{' '}
+							<span className='text-muted-foreground text-xs'>{baseUnitPlural}</span>
+						</p>
+					</div>
+				)}
+
+				<p className='text-sm text-muted-foreground'>
+					The conversion factor for this feature is set at{' '}
+					<span className='font-semibold text-blue-600'>{reportingUnit.conversion_rate ?? '—'}</span>.
+				</p>
+
+				<div className='mt-4 flex justify-end'>
+					<Button
+						type='button'
+						onClick={() => {
+							if (computedUnitValue != null && onConfirm) onConfirm(computedUnitValue);
+							onOpenChange(false);
+						}}>
+						OK
+					</Button>
+				</div>
+			</div>
+		</Dialog>
+	);
+};
+
 const AddEntitlementDrawer: FC<Props> = ({
 	isOpen,
 	onOpenChange,
@@ -131,6 +244,16 @@ const AddEntitlementDrawer: FC<Props> = ({
 	const [showSelect, setShowSelect] = useState(true);
 	const [activeFeature, setActiveFeature] = useState<Feature | null>(null);
 	const [tempEntitlement, setTempEntitlement] = useState<Partial<Entitlement>>({});
+	const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+
+	// Fetch full feature (including reporting_unit) when one is selected; list API may omit it
+	const { data: fullFeature } = useQuery({
+		queryKey: ['fetchFeatureById', activeFeature?.id],
+		queryFn: () => FeatureApi.getFeatureById(activeFeature!.id),
+		enabled: !!activeFeature?.id,
+		staleTime: 60000,
+	});
+	const featureForForm = fullFeature ?? activeFeature;
 
 	// Memoize existing feature IDs to prevent unnecessary recalculations
 	const existingFeatureIds = useMemo(() => initialEntitlements?.map((ent) => ent.feature_id) || [], [initialEntitlements]);
@@ -143,6 +266,7 @@ const AddEntitlementDrawer: FC<Props> = ({
 		setShowSelect(true);
 		setActiveFeature(null);
 		setTempEntitlement({});
+		setIsCalculatorOpen(false);
 	}, [disabledFeatures]);
 
 	// Memoize already added feature IDs (from entitlements + initial entitlements)
@@ -260,6 +384,7 @@ const AddEntitlementDrawer: FC<Props> = ({
 		setTempEntitlement({});
 		setActiveFeature(null);
 		setErrors({});
+		setIsCalculatorOpen(false);
 	}, [activeFeature, validateCurrentEntitlement, alreadyAddedFeatureIds, tempEntitlement, entityType, entityId]);
 
 	// Clear errors when feature changes
@@ -288,6 +413,7 @@ const AddEntitlementDrawer: FC<Props> = ({
 			setSelectedFeatures((prev) => prev.filter((feature) => feature.id !== activeFeature.id));
 		}
 		setTempEntitlement({});
+		setIsCalculatorOpen(false);
 	}, [activeFeature]);
 
 	return (
@@ -377,7 +503,22 @@ const AddEntitlementDrawer: FC<Props> = ({
 												usage_limit: numValue,
 											}));
 										}}
-										suffix={<span className='text-muted-foreground text-xs font-sans'>{activeFeature.unit_plural || 'units'}</span>}
+										suffix={
+											<div className='flex items-center gap-1.5'>
+												<span className='text-muted-foreground text-xs font-sans'>{featureForForm?.unit_plural?.trim() || 'units'}</span>
+												{featureForForm?.reporting_unit != null && (
+													<Button
+														type='button'
+														variant='ghost'
+														size='icon'
+														className='size-7 shrink-0 text-muted-foreground hover:text-foreground'
+														onClick={() => setIsCalculatorOpen(true)}
+														aria-label='Display value calculator'>
+														<Calculator className='size-4' />
+													</Button>
+												)}
+											</div>
+										}
 									/>
 									<Spacer className='!my-4' />
 									<Checkbox
@@ -437,6 +578,19 @@ const AddEntitlementDrawer: FC<Props> = ({
 												static_value: value === '' ? undefined : value,
 											}));
 										}}
+										suffix={
+											featureForForm?.reporting_unit != null ? (
+												<Button
+													type='button'
+													variant='ghost'
+													size='icon'
+													className='size-7 shrink-0 text-muted-foreground hover:text-foreground'
+													onClick={() => setIsCalculatorOpen(true)}
+													aria-label='Display value calculator'>
+													<Calculator className='size-4' />
+												</Button>
+											) : undefined
+										}
 									/>
 								</div>
 							)}
@@ -458,6 +612,31 @@ const AddEntitlementDrawer: FC<Props> = ({
 					</Button>
 				</div>
 			</Sheet>
+
+			<DisplayValueCalculatorDialog
+				isOpen={isCalculatorOpen}
+				onOpenChange={setIsCalculatorOpen}
+				unitValue={(() => {
+					if (activeFeature?.type === FEATURE_TYPE.METERED) return tempEntitlement.usage_limit ?? undefined;
+					if (activeFeature?.type === FEATURE_TYPE.STATIC && tempEntitlement.static_value != null) {
+						const n =
+							typeof tempEntitlement.static_value === 'string'
+								? parseFloat(tempEntitlement.static_value)
+								: Number(tempEntitlement.static_value);
+						return Number.isFinite(n) ? n : undefined;
+					}
+					return undefined;
+				})()}
+				reportingUnit={featureForForm?.reporting_unit}
+				baseUnitPlural={featureForForm?.unit_plural?.trim() || 'units'}
+				onConfirm={(unitValue) => {
+					if (activeFeature?.type === FEATURE_TYPE.METERED) {
+						setTempEntitlement((prev) => ({ ...prev, usage_limit: unitValue }));
+					} else if (activeFeature?.type === FEATURE_TYPE.STATIC) {
+						setTempEntitlement((prev) => ({ ...prev, static_value: String(unitValue) }));
+					}
+				}}
+			/>
 		</div>
 	);
 };

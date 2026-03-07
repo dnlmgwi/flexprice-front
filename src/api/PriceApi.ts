@@ -64,7 +64,8 @@ export class PriceApi {
 	 * @returns Promise<PriceResponse>
 	 */
 	public static async UpdatePrice(id: string, data: UpdatePriceRequest) {
-		return await AxiosClient.put<PriceResponse>(`${this.baseUrl}/${id}`, data);
+		// allowEmptyKeys so that group_id: '' is sent when user selects "None" to clear the group
+		return await AxiosClient.put<PriceResponse>(`${this.baseUrl}/${id}`, data, { allowEmptyKeys: ['group_id'] });
 	}
 
 	/**

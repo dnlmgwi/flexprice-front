@@ -1,4 +1,4 @@
-import { Invoice, INVOICE_STATUS } from '@/models/Invoice';
+import { Invoice, INVOICE_STATUS, INVOICE_TYPE } from '@/models/Invoice';
 import { FC, useState } from 'react';
 import { DropdownMenu, RecordPaymentTopup } from '..';
 import { DropdownMenuOption } from '../DropdownMenu/DropdownMenu';
@@ -43,6 +43,21 @@ const InvoiceTableMenu: FC<Props> = ({ data }) => {
 		},
 		onError: (error: ServerError) => {
 			toast.error(error.error.message || 'Unable to download invoice');
+		},
+	});
+
+	const { mutate: recalculateInvoice, isPending: isRecalculating } = useMutation({
+		mutationFn: async (invoice_id: string) => {
+			return await InvoiceApi.recalculateInvoice(invoice_id);
+		},
+		onSuccess: (newInvoice) => {
+			toast.success('Invoice recalculated successfully');
+			refetchQueries(['fetchInvoice', data.id]);
+			refetchQueries(['fetchInvoices']);
+			navigate(`${RouteNames.customers}/${data.customer_id}/invoice/${newInvoice.id}`);
+		},
+		onError: (error: ServerError) => {
+			toast.error(error.error.message || 'Unable to recalculate invoice');
 		},
 	});
 
@@ -113,6 +128,18 @@ const InvoiceTableMenu: FC<Props> = ({ data }) => {
 			disabled: data?.invoice_status !== 'FINALIZED' || data?.payment_status === 'REFUNDED',
 			onSelect: () => {
 				navigate(`${RouteNames.customers}/${data?.customer_id}/invoice/${data?.id}/credit-note`);
+			},
+		},
+		{
+			label: 'Recalculate Invoice',
+			group: 'Actions',
+			disabled:
+				data?.invoice_status !== INVOICE_STATUS.VOIDED ||
+				data?.invoice_type !== INVOICE_TYPE.SUBSCRIPTION ||
+				!!data?.recalculated_invoice_id ||
+				isRecalculating,
+			onSelect: () => {
+				recalculateInvoice(data.id);
 			},
 		},
 		{

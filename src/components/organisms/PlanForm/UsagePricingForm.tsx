@@ -609,6 +609,16 @@ const UsagePricingForm: FC<Props> = ({
 				</div>
 			)}
 			<Spacer height='8px' />
+			<SelectGroup
+				value={groupId}
+				onChange={(group: Group | null) => setGroupId(group?.id)}
+				label='Group'
+				placeholder='Select a group (optional)'
+				description='Assign this price to a group for better organization'
+				showLookupKey={false}
+				hiddenIfEmpty
+			/>
+			<Spacer height={'16px'} />
 			{/* <Spacer height='12px' /> */}
 			{/* <CheckboxRadioGroup
 				title='Billing timing'
@@ -641,14 +651,6 @@ const UsagePricingForm: FC<Props> = ({
 				setDate={setStartDate}
 				label='Start Date (Optional)'
 				placeholder='Select start date'
-			/>
-			<SelectGroup
-				value={groupId}
-				onChange={(group: Group | null) => setGroupId(group?.id)}
-				label='Group'
-				placeholder='Select a group (optional)'
-				description='Assign this price to a group for better organization'
-				hiddenIfEmpty
 			/>
 
 			<Spacer height={'16px'} />

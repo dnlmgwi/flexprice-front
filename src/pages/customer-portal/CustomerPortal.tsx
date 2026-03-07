@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
@@ -6,74 +6,101 @@ import { setRuntimeCredentials, clearRuntimeCredentials } from '@/core/axios/con
 import CustomerPortalApi from '@/api/CustomerPortalApi';
 import { Customer } from '@/models';
 import { Loader } from '@/components/atoms';
-import { PortalHeader, OverviewTab, InvoicesTab, WalletTab, UsageAnalyticsTab } from '@/components/customer-portal';
+import { PortalHeader } from '@/components/customer-portal';
+import { PortalConfigProvider, usePortalConfig } from '@/context/PortalConfigContext';
+import SectionContent from '@/components/customer-portal/SectionContent';
+import { portalInvoicesQueryKey } from '@/components/customer-portal/queryKeys';
+import { SectionConfig } from '@/types/dto/PortalConfig';
 import { cn } from '@/lib/utils';
 
 /**
  * Customer Portal Page
  *
- * This is an out-of-auth-scope page similar to Stripe's customer portal.
- * It operates independently of the main application's authentication system.
+ * Out-of-auth-scope page (similar to Stripe's customer portal).
+ * Auth is purely via the session token in the URL — no JWT, no env ID.
  *
- * Required Parameters:
- * - token: Dashboard session token (passed from URL query parameter)
- *
- * This page uses runtime credential override to set dashboard token dynamically,
- * allowing CustomerPortalApi to work in stateless contexts without JWT or environment ID.
+ * Layout, theming, and sections are all driven by the PortalConfig fetched
+ * from GET /v1/settings/customer_portal_config. Falls back to DEFAULT_PORTAL_CONFIG.
  */
 interface CustomerPortalProps {
 	token: string;
 }
 
-enum PortalTab {
-	OVERVIEW = 'overview',
-	CREDITS = 'credits',
-	INVOICES = 'invoices',
-	EVENTS = 'events',
-}
+// ─── Inner component — consumes PortalConfigContext ───────────────────────────
 
-const CustomerPortal = ({ token }: CustomerPortalProps) => {
-	const [activeTab, setActiveTab] = useState<PortalTab>(PortalTab.OVERVIEW);
+const CustomerPortalInner = () => {
+	const { config } = usePortalConfig();
 
-	useEffect(() => {
-		// Set runtime credentials for this session
-		setRuntimeCredentials({ sessionToken: token });
-
-		// Cleanup on unmount
-		return () => clearRuntimeCredentials();
-	}, [token]);
-
-	// Fetch customer data
 	const {
 		data: customerData,
 		isLoading: customerLoading,
 		isError: customerError,
 		error,
 	} = useQuery<Customer>({
-		queryKey: ['portal-customer', token],
-		queryFn: async () => {
-			return await CustomerPortalApi.getCustomer();
-		},
-		enabled: !!token,
+		queryKey: ['portal-customer'],
+		queryFn: () => CustomerPortalApi.getCustomer(),
 		retry: 1,
 		staleTime: 0,
 		gcTime: 0,
 	});
 
-	// Check if customer has wallets (to conditionally show wallet tab)
-	const { data: wallets } = useQuery({
-		queryKey: ['portal-wallets-check', token],
-		queryFn: () => CustomerPortalApi.getWallets(),
-		enabled: !!token,
-	});
-
-	// Show toast notification for errors
 	useEffect(() => {
 		if (customerError) {
 			const err = error as { error?: { message?: string }; message?: string };
 			toast.error(err?.error?.message || err?.message || 'Failed to fetch customer data');
 		}
 	}, [customerError, error]);
+
+	// Pre-fetch wallets + invoices using the same query keys as the widgets
+	// (React Query deduplicates — zero extra API calls)
+	const { data: walletsData } = useQuery({
+		queryKey: ['portal-wallets'],
+		queryFn: () => CustomerPortalApi.getWallets(),
+	});
+
+	const { data: invoicesData } = useQuery({
+		queryKey: portalInvoicesQueryKey,
+		queryFn: () => CustomerPortalApi.getInvoices({ limit: 100, offset: 0 }),
+	});
+
+	// Hide a section only when ALL its enabled tabs depend on a single data source
+	// that has loaded and returned empty. While loading (data === undefined), always show.
+	const isSectionVisible = useCallback(
+		(section: SectionConfig): boolean => {
+			const enabledTypes = section.tabs.filter((t) => t.enabled).map((t) => t.type);
+			const walletTypes = new Set(['wallet_balance', 'wallet_transactions']);
+			const invoiceTypes = new Set(['invoices']);
+
+			const allWallet = enabledTypes.length > 0 && enabledTypes.every((t) => walletTypes.has(t));
+			const allInvoice = enabledTypes.length > 0 && enabledTypes.every((t) => invoiceTypes.has(t));
+
+			if (allWallet && walletsData !== undefined && walletsData.length === 0) return false;
+			if (allInvoice && invoicesData !== undefined && (invoicesData.items?.length ?? 0) === 0) return false;
+
+			return true;
+		},
+		[walletsData, invoicesData],
+	);
+
+	// Derive visible, sorted sections — filtered by data availability
+	const visibleSections = useMemo(
+		() => [...config.sections.filter((s) => s.enabled && isSectionVisible(s))].sort((a, b) => a.order - b.order),
+		[config.sections, isSectionVisible],
+	);
+
+	const [activeSectionId, setActiveSectionId] = useState<string>('');
+
+	// If the active section gets hidden (e.g. invoices data empty), fall back to first visible
+	useEffect(() => {
+		if (activeSectionId && !visibleSections.find((s) => s.id === activeSectionId)) {
+			setActiveSectionId('');
+		}
+	}, [activeSectionId, visibleSections]);
+
+	const activeSection = useMemo(() => {
+		if (activeSectionId) return visibleSections.find((s) => s.id === activeSectionId);
+		return visibleSections[0];
+	}, [activeSectionId, visibleSections]);
 
 	if (customerLoading) {
 		return (
@@ -83,64 +110,36 @@ const CustomerPortal = ({ token }: CustomerPortalProps) => {
 		);
 	}
 
-	if (customerError) {
-		return null; // Error is handled by toast notification
-	}
-
-	if (!customerData) {
-		return (
-			<div className='min-h-screen bg-[#fafafa] flex items-center justify-center'>
-				<p className='text-zinc-500'>No customer found</p>
-			</div>
-		);
-	}
-
-	const hasWallets = wallets && wallets.length > 0;
-
-	const tabs: { id: PortalTab; label: string; show: boolean }[] = [
-		{ id: PortalTab.OVERVIEW, label: 'Overview', show: true },
-		{ id: PortalTab.CREDITS, label: 'Credits', show: hasWallets || false },
-		{ id: PortalTab.INVOICES, label: 'Invoices', show: true },
-		{ id: PortalTab.EVENTS, label: 'Usage', show: true },
-	];
-
-	const visibleTabs = tabs.filter((tab) => tab.show);
+	if (customerError || !customerData) return null;
 
 	return (
 		<div className='min-h-screen bg-[#fafafa]'>
-			{/* Header */}
 			<PortalHeader customer={customerData} />
 
-			{/* Main Content */}
 			<motion.div
 				initial={{ opacity: 0, y: 10 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.3 }}
 				className='max-w-6xl mx-auto px-4 sm:px-6 py-6'>
-				{/* Tab Navigation */}
+				{/* Top-level Section Tab Bar */}
 				<div className='mb-6'>
 					<div className='flex space-x-1 bg-white border border-[#E9E9E9] rounded-[6px] p-1 w-fit'>
-						{visibleTabs.map((tab) => (
+						{visibleSections.map((section) => (
 							<button
-								key={tab.id}
-								onClick={() => setActiveTab(tab.id)}
+								key={section.id}
+								onClick={() => setActiveSectionId(section.id)}
 								className={cn(
 									'px-4 py-2 text-sm font-medium rounded-[6px] transition-colors',
-									activeTab === tab.id ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50',
+									activeSection?.id === section.id ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50',
 								)}>
-								{tab.label}
+								{section.label}
 							</button>
 						))}
 					</div>
 				</div>
 
-				{/* Tab Content */}
-				<div>
-					{activeTab === PortalTab.OVERVIEW && <OverviewTab />}
-					{activeTab === PortalTab.CREDITS && hasWallets && <WalletTab />}
-					{activeTab === PortalTab.INVOICES && <InvoicesTab />}
-					{activeTab === PortalTab.EVENTS && <UsageAnalyticsTab />}
-				</div>
+				{/* Active Section Content */}
+				{activeSection && <SectionContent key={activeSection.id} section={activeSection} />}
 
 				{/* Footer */}
 				<div className='mt-12 pt-6 border-t border-[#E9E9E9] text-center'>
@@ -157,6 +156,21 @@ const CustomerPortal = ({ token }: CustomerPortalProps) => {
 				</div>
 			</motion.div>
 		</div>
+	);
+};
+
+// ─── Outer wrapper — sets up runtime credentials + context provider ───────────
+
+const CustomerPortal = ({ token }: CustomerPortalProps) => {
+	useEffect(() => {
+		setRuntimeCredentials({ sessionToken: token });
+		return () => clearRuntimeCredentials();
+	}, [token]);
+
+	return (
+		<PortalConfigProvider token={token}>
+			<CustomerPortalInner />
+		</PortalConfigProvider>
 	);
 };
 

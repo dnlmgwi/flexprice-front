@@ -11,7 +11,7 @@ export type { default as CostSheet } from './CostSheet';
 
 // Group
 export type { Group } from './Group';
-export { GROUP_ENTITY_TYPE } from './Group';
+export { GROUP_ENTITY_TYPE, GROUP_ENTITY_TYPE_LABEL, getGroupEntityTypeLabel } from './Group';
 
 // Connection
 export type { Connection } from './Connection';

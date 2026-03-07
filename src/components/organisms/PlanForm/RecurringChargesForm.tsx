@@ -288,6 +288,7 @@ const RecurringChargesForm = ({
 				label='Group'
 				placeholder='Select a group (optional)'
 				description='Assign this price to a group for better organization'
+				showLookupKey={false}
 				hiddenIfEmpty
 			/>
 			<Spacer height={'16px'} />

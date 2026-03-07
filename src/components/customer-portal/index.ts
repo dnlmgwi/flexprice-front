@@ -9,4 +9,6 @@ export { default as SubscriptionsSection } from './SubscriptionsSection';
 export { default as UsageSection } from './UsageSection';
 export { default as EmptyState } from './EmptyState';
 export { default as TimePeriodSelector } from './TimePeriodSelector';
+export { default as TabRenderer } from './TabRenderer';
+export { default as SectionContent } from './SectionContent';
 export * from './constants';

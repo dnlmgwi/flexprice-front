@@ -1,120 +1,24 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Card } from '@/components/atoms';
 import CustomerPortalApi from '@/api/CustomerPortalApi';
-import { CustomerUsageChart } from '@/components/molecules';
+import { Card } from '@/components/atoms';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/molecules/Table/Table';
-import { UsageAnalyticItem, WindowSize } from '@/models';
+import { UsageAnalyticItem } from '@/models';
 import { DashboardAnalyticsRequest } from '@/types';
 import { formatNumber, getCurrencySymbol } from '@/utils';
-import { Skeleton } from '@/components/ui/skeleton';
-import EmptyState from './EmptyState';
-import TimePeriodSelector from './TimePeriodSelector';
-import { CustomerPortalTimePeriod, DEFAULT_TIME_PERIOD, calculateTimeRange } from './constants';
 import { ChevronDown, ChevronUp, ChevronsUpDown } from 'lucide-react';
-
-const EXPAND_ALL_SVG = '/assets/svg/expand-all-svgrepo-com.svg';
-const COLLAPSE_ALL_SVG = '/assets/svg/collapse-all-svgrepo-com.svg';
-const CHEVRON_UP_SVG = '/assets/svg/chevron-up-svgrepo-com.svg';
-const CHEVRON_DOWN_SVG = '/assets/svg/chevron-down-svgrepo-com.svg';
 import { cn } from '@/lib/utils';
 
-const UsageAnalyticsTab = () => {
-	const [selectedPeriod, setSelectedPeriod] = useState<CustomerPortalTimePeriod>(DEFAULT_TIME_PERIOD);
+const CHEVRON_UP_SVG = '/assets/svg/chevron-up-svgrepo-com.svg';
+const CHEVRON_DOWN_SVG = '/assets/svg/chevron-down-svgrepo-com.svg';
+const EXPAND_ALL_SVG = '/assets/svg/expand-all-svgrepo-com.svg';
+const COLLAPSE_ALL_SVG = '/assets/svg/collapse-all-svgrepo-com.svg';
 
-	// Prepare analytics params based on selected period (expand price so group-by works)
-	const analyticsParams: DashboardAnalyticsRequest | null = useMemo(() => {
-		const timeRange = calculateTimeRange(selectedPeriod);
-
-		return {
-			window_size: WindowSize.DAY,
-			start_time: timeRange.start_time,
-			end_time: timeRange.end_time,
-			expand: ['price'],
-		};
-	}, [selectedPeriod]);
-
-	// Debounced API parameters with 300ms delay
-	const [debouncedParams, setDebouncedParams] = useState<DashboardAnalyticsRequest | null>(null);
-
-	useEffect(() => {
-		if (analyticsParams) {
-			const timeoutId = setTimeout(() => {
-				setDebouncedParams(analyticsParams);
-			}, 300);
-
-			return () => clearTimeout(timeoutId);
-		} else {
-			setDebouncedParams(null);
-		}
-	}, [analyticsParams]);
-
-	// Fetch usage analytics
-	const {
-		data: usageData,
-		isLoading: usageLoading,
-		error: usageError,
-	} = useQuery({
-		queryKey: ['portal-usage-analytics', debouncedParams],
-		queryFn: async () => {
-			if (!debouncedParams) {
-				throw new Error('API parameters not available');
-			}
-			return await CustomerPortalApi.getAnalytics(debouncedParams);
-		},
-		enabled: !!debouncedParams,
-	});
-
-	useEffect(() => {
-		if (usageError) {
-			toast.error('Failed to load usage analytics');
-		}
-	}, [usageError]);
-
-	return (
-		<div className='space-y-6'>
-			{/* Usage Chart */}
-			<Card className='bg-white border border-[#E9E9E9] rounded-xl p-6'>
-				<div className='flex items-center justify-between mb-4'>
-					<h3 className='text-base font-medium text-zinc-950'>Usage</h3>
-					<TimePeriodSelector selectedPeriod={selectedPeriod} onPeriodChange={setSelectedPeriod} />
-				</div>
-				{usageLoading ? (
-					<div className='space-y-4'>
-						<Skeleton className='h-64 w-full' />
-					</div>
-				) : usageData ? (
-					<CustomerUsageChart data={usageData} />
-				) : (
-					<div className='py-8'>
-						<EmptyState title='No usage data found' description={`Your usage from the last ${selectedPeriod} will appear here`} />
-					</div>
-				)}
-			</Card>
-
-			{/* Usage Breakdown Table */}
-			<Card className='bg-white border border-[#E9E9E9] rounded-xl overflow-hidden'>
-				<div className='p-6'>
-					<h3 className='text-base font-medium text-zinc-950'>Usage Breakdown</h3>
-				</div>
-				{usageLoading ? (
-					<div className='space-y-4 p-6'>
-						<Skeleton className='h-8 w-full' />
-						<Skeleton className='h-8 w-full' />
-						<Skeleton className='h-8 w-full' />
-					</div>
-				) : usageData && usageData.items && usageData.items.length > 0 ? (
-					<UsageBreakdownTable items={usageData.items} />
-				) : (
-					<div className='py-8'>
-						<EmptyState title='No usage data found' description={`Your usage from the last ${selectedPeriod} will appear here`} />
-					</div>
-				)}
-			</Card>
-		</div>
-	);
-};
+interface UsageBreakdownWidgetProps {
+	analyticsParams: DashboardAnalyticsRequest;
+	label?: string;
+}
 
 const UNGROUPED_KEY = '__ungrouped__';
 
@@ -160,7 +64,28 @@ function renderTotalCostPortal(row: UsageAnalyticItem) {
 	);
 }
 
-const UsageBreakdownTable: React.FC<{ items: UsageAnalyticItem[] }> = ({ items }) => {
+/**
+ * Renders just the usage breakdown table with grouping support.
+ * Shares React Query cache with UsageGraphWidget (same key) — zero duplicate API calls.
+ * Returns null if there are no items — no empty container shown.
+ */
+const UsageBreakdownWidget = ({ analyticsParams, label }: UsageBreakdownWidgetProps) => {
+	const {
+		data: analyticsData,
+		isLoading,
+		isError,
+	} = useQuery({
+		queryKey: ['portal-analytics', analyticsParams],
+		queryFn: () => CustomerPortalApi.getAnalytics(analyticsParams),
+	});
+
+	useEffect(() => {
+		if (isError) toast.error('Failed to load usage breakdown');
+	}, [isError]);
+
+	const items = analyticsData?.items ?? [];
+
+	// Sort state
 	const [sortField, setSortField] = useState<'total_usage' | 'total_cost'>('total_cost');
 	const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 	const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => new Set());
@@ -243,20 +168,42 @@ const UsageBreakdownTable: React.FC<{ items: UsageAnalyticItem[] }> = ({ items }
 		);
 	};
 
-	return (
-		<div className='px-6 pb-6'>
-			{hasGroups && (
-				<div className='flex justify-end mb-4'>
-					<button
-						type='button'
-						onClick={toggleExpandAll}
-						className='inline-flex items-center justify-center text-gray-600 hover:text-gray-900'
-						aria-label={allExpanded ? 'Collapse all' : 'Expand all'}>
-						<img src={allExpanded ? COLLAPSE_ALL_SVG : EXPAND_ALL_SVG} alt='' className='h-4 w-4' />
-					</button>
+	// Return null if no data — no empty state container
+	if (!isLoading && items.length === 0) return null;
+
+	if (isLoading) {
+		return (
+			<Card className='bg-white border border-[#E9E9E9] rounded-xl overflow-hidden'>
+				<div className='p-6 border-b border-[#E9E9E9]'>
+					<div className='h-5 w-40 bg-zinc-100 animate-pulse rounded' />
 				</div>
-			)}
-			<div>
+				<div className='p-6 space-y-3'>
+					{[1, 2, 3].map((i) => (
+						<div key={i} className='h-8 bg-zinc-100 animate-pulse rounded' />
+					))}
+				</div>
+			</Card>
+		);
+	}
+
+	return (
+		<Card className='bg-white border border-[#E9E9E9] rounded-xl overflow-hidden'>
+			<div className='p-6'>
+				<div className='flex items-center justify-between'>
+					<h3 className='text-base font-medium text-zinc-950'>{label || 'Usage Breakdown'}</h3>
+					{hasGroups && (
+						<button
+							type='button'
+							onClick={toggleExpandAll}
+							className='inline-flex items-center justify-center text-gray-600 hover:text-gray-900'
+							aria-label={allExpanded ? 'Collapse all' : 'Expand all'}>
+							<img src={allExpanded ? COLLAPSE_ALL_SVG : EXPAND_ALL_SVG} alt='' className='h-4 w-4' />
+						</button>
+					)}
+				</div>
+			</div>
+
+			<div className='px-6 pb-6'>
 				<Table>
 					<TableHeader className='h-10 border-b border-gray-200'>
 						<TableRow className='border-b border-gray-200'>
@@ -293,7 +240,12 @@ const UsageBreakdownTable: React.FC<{ items: UsageAnalyticItem[] }> = ({ items }
 											<div className='inline-flex items-center gap-2 text-left'>
 												<span className='font-semibold text-gray-900 text-[13px]'>{bucket.groupName}</span>
 												{bucket.items.length > 0 ? (
-													<img src={isExpanded ? CHEVRON_UP_SVG : CHEVRON_DOWN_SVG} alt='' className='h-4 w-4 shrink-0' aria-hidden />
+													<img
+														src={isExpanded ? CHEVRON_UP_SVG : CHEVRON_DOWN_SVG}
+														alt=''
+														className='h-4 w-4 shrink-0 text-gray-600'
+														aria-hidden
+													/>
 												) : null}
 											</div>
 										</TableCell>
@@ -345,8 +297,8 @@ const UsageBreakdownTable: React.FC<{ items: UsageAnalyticItem[] }> = ({ items }
 					</TableBody>
 				</Table>
 			</div>
-		</div>
+		</Card>
 	);
 };
 
-export default UsageAnalyticsTab;
+export default UsageBreakdownWidget;

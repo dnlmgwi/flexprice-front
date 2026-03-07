@@ -1,4 +1,5 @@
 export { default as QueryBuilder } from './QueryBuilder';
+export { default as PropertyFilterQueryBuilder } from './PropertyFilterQueryBuilder';
 export { default as FilterPopover } from './FilterPopover';
 export { default as FilterAsyncSelect } from './FilterAsyncSelect';
 export { default as FilterAsyncMultiSelect } from './FilterAsyncMultiSelect';

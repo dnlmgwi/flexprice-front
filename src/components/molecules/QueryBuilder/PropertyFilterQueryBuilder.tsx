@@ -1,7 +1,8 @@
 import { FilterField, FilterCondition, SortOption, SortDirection } from '@/types/common/QueryBuilder';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { debounce } from 'lodash';
-import { FilterPopover, SortDropdown } from '@/components/molecules';
+import { SortDropdown } from '@/components/molecules';
+import PropertyFilterPopover from './PropertyFilterPopover';
 
 interface Props {
 	// Filter options
@@ -29,7 +30,7 @@ interface Props {
 	onFilterPopoverReset?: () => void;
 }
 
-const QueryBuilder = ({
+const PropertyFilterQueryBuilder = ({
 	filterOptions: fields,
 	onFilterChange,
 	filters,
@@ -37,6 +38,8 @@ const QueryBuilder = ({
 	onSortChange = () => {},
 	selectedSorts = [],
 	debounceTime = 500,
+	propertyFiltersConfig,
+	onFilterPopoverReset,
 }: Props) => {
 	const [filter, setFilter] = useState<FilterCondition[]>(filters);
 	const [localSorts, setLocalSorts] = useState<SortOption[]>(selectedSorts);
@@ -121,7 +124,15 @@ const QueryBuilder = ({
 	return (
 		<div className='flex flex-wrap items-center gap-3 mb-5'>
 			{/* Filter options */}
-			{fields.length > 0 && <FilterPopover fields={fields} value={filter} onChange={handleFilterChange} />}
+			{fields.length > 0 && (
+				<PropertyFilterPopover
+					fields={fields}
+					value={filter}
+					onChange={handleFilterChange}
+					propertyFilters={propertyFiltersConfig}
+					onResetCallback={onFilterPopoverReset}
+				/>
+			)}
 
 			{/* Sort options */}
 			{sortOptions.length > 0 && selectedSorts && (
@@ -131,4 +142,4 @@ const QueryBuilder = ({
 	);
 };
 
-export default QueryBuilder;
+export default PropertyFilterQueryBuilder;

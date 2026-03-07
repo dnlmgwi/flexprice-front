@@ -6,7 +6,7 @@ interface Props {
 	isOpen: boolean;
 	onOpenChange: (isOpen: boolean) => void;
 	title: string | ReactNode;
-	description?: string;
+	description?: string | ReactNode;
 	children?: ReactNode;
 	className?: string;
 	titleClassName?: string;
