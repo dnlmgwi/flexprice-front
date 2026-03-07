@@ -1,5 +1,6 @@
 import { Group, GROUP_ENTITY_TYPE, Pagination, Metadata } from '@/models';
 import { QueryFilter } from './base';
+import { TypedBackendFilter, TypedBackendSort } from '@/types/formatters/QueryBuilder';
 
 export interface CreateGroupRequest {
 	name: string;
@@ -25,6 +26,8 @@ export interface ListGroupsResponse {
 
 export interface GroupFilter extends QueryFilter {
 	entity_type?: GROUP_ENTITY_TYPE;
+	filters?: TypedBackendFilter[];
+	sort?: TypedBackendSort[];
 }
 
 export interface AddEntityToGroupRequest {

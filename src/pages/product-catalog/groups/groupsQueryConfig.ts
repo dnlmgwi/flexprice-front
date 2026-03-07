@@ -3,12 +3,10 @@ import {
 	FilterFieldType,
 	DEFAULT_OPERATORS_PER_DATA_TYPE,
 	DataType,
-	FilterOperator,
 	SortOption,
 	SortDirection,
 	FilterCondition,
 } from '@/types/common/QueryBuilder';
-import { ENTITY_STATUS } from '@/models';
 
 export const groupsSortOptions: SortOption[] = [
 	{ field: 'name', label: 'Name', direction: SortDirection.ASC },
@@ -32,47 +30,16 @@ export const groupsFilterOptions: FilterField[] = [
 		dataType: DataType.STRING,
 	},
 	{
-		field: 'status',
-		label: 'Status',
-		fieldType: FilterFieldType.MULTI_SELECT,
-		operators: [FilterOperator.IN, FilterOperator.NOT_IN],
-		dataType: DataType.ARRAY,
-		options: [
-			{ value: ENTITY_STATUS.PUBLISHED, label: 'Active' },
-			{ value: ENTITY_STATUS.ARCHIVED, label: 'Inactive' },
-		],
-	},
-	{
 		field: 'created_at',
 		label: 'Created At',
 		fieldType: FilterFieldType.DATEPICKER,
 		operators: DEFAULT_OPERATORS_PER_DATA_TYPE[DataType.DATE],
 		dataType: DataType.DATE,
 	},
+	// TODO: add status when groups search API supports it
 ];
 
-export const groupsInitialFilters: FilterCondition[] = [
-	{
-		field: 'name',
-		operator: FilterOperator.CONTAINS,
-		valueString: '',
-		dataType: DataType.STRING,
-		id: 'initial-name',
-	},
-	{
-		field: 'lookup_key',
-		operator: FilterOperator.CONTAINS,
-		valueString: '',
-		dataType: DataType.STRING,
-		id: 'initial-lookup_key',
-	},
-	{
-		field: 'status',
-		operator: FilterOperator.IN,
-		valueArray: [ENTITY_STATUS.PUBLISHED],
-		dataType: DataType.ARRAY,
-		id: 'initial-status',
-	},
-];
+/** No filters open by default; user adds filters as needed. */
+export const groupsInitialFilters: FilterCondition[] = [];
 
 export const groupsInitialSorts: SortOption[] = [{ field: 'updated_at', label: 'Updated At', direction: SortDirection.DESC }];

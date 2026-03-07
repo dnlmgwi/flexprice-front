@@ -9,6 +9,16 @@ export enum GROUP_ENTITY_TYPE {
 	CUSTOMER = 'customer',
 }
 
+/** Display labels for group entity types. Extend when more types are supported. */
+export const GROUP_ENTITY_TYPE_LABEL: Record<string, string> = {
+	[GROUP_ENTITY_TYPE.PRICE]: 'Price',
+	// Future: PLAN: 'Plan', ADDON: 'Addon', etc.
+};
+
+export function getGroupEntityTypeLabel(entityType: string): string {
+	return GROUP_ENTITY_TYPE_LABEL[entityType] ?? entityType.charAt(0).toUpperCase() + entityType.slice(1).toLowerCase();
+}
+
 export interface Group extends BaseModel {
 	readonly name: string;
 	readonly lookup_key: string;

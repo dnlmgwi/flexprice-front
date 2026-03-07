@@ -46,6 +46,9 @@ export enum DOCS_LINKS {
 	TAX_OVERVIEW = 'https://docs.flexprice.io/api-reference/tax-associations/create-tax-associations',
 	TAX_TYPES = 'https://docs.flexprice.io/api-reference/tax-associations/get-tax-association',
 	TAX_ASSOCIATIONS = 'https://docs.flexprice.io/api-reference/tax-associations/list-tax-associations',
+
+	//groups
+	GROUPS = 'https://docs.flexprice.io/docs/product-catalogue/groups',
 }
 
 export enum IMAGE_URLS {
@@ -183,6 +186,12 @@ const GUIDES: Record<
 	groups: {
 		tutorials: [
 			{
+				imageUrl: IMAGE_URLS.PLAN_3,
+				title: 'Explore how groups work in Flexprice.',
+				description: 'Learn how groups work in Flexprice.',
+				onClick: () => openGuide(DOCS_LINKS.GROUPS),
+			},
+			{
 				imageUrl: IMAGE_URLS.PLAN_1,
 				title: 'Explore how plans work in Flexprice.',
 				description: 'Explore how plans work in Flexprice.',
@@ -190,15 +199,9 @@ const GUIDES: Record<
 			},
 			{
 				imageUrl: IMAGE_URLS.FEATURE_1,
-				title: 'How features work in Flexprice',
+				title: 'Explore how features work in Flexprice.',
 				description: 'Explore how features work in Flexprice.',
 				onClick: () => openGuide(DOCS_LINKS.FEATURE_CREATE),
-			},
-			{
-				imageUrl: IMAGE_URLS.PLAN_3,
-				title: 'How to choose between advance and arrear billing?',
-				description: 'Understand billing models used in plans.',
-				onClick: () => openGuide(DOCS_LINKS.PLANS_CHARGES),
 			},
 		],
 	},

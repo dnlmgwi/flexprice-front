@@ -3,13 +3,19 @@ import { ApiDocsContent, GroupDrawer } from '@/components/molecules';
 import { ColumnData } from '@/components/molecules/Table';
 import { QueryableDataArea } from '@/components/organisms';
 import { Group } from '@/models/Group';
-import { GROUP_ENTITY_TYPE } from '@/models/Group';
+import { getGroupEntityTypeLabel } from '@/models/Group';
 import { ENTITY_STATUS } from '@/models';
 import GUIDES from '@/constants/guides';
 import { useState, useMemo } from 'react';
 import { GroupApi } from '@/api/GroupApi';
 import formatDate from '@/utils/common/format_date';
 import formatChips from '@/utils/common/format_chips';
+import {
+	groupsFilterOptions,
+	groupsSortOptions,
+	groupsInitialFilters,
+	groupsInitialSorts,
+} from '@/pages/product-catalog/groups/groupsQueryConfig';
 
 const GroupsPage = () => {
 	const [groupDrawerOpen, setGroupDrawerOpen] = useState(false);
@@ -21,6 +27,10 @@ const GroupsPage = () => {
 	const columns: ColumnData<Group>[] = useMemo(
 		() => [
 			{ fieldName: 'name', title: 'Name' },
+			{
+				title: 'Type',
+				render: (row) => getGroupEntityTypeLabel(row.entity_type ?? ''),
+			},
 			{
 				title: 'Status',
 				render: (row) => {
@@ -56,19 +66,20 @@ const GroupsPage = () => {
 			<div className='space-y-6'>
 				<QueryableDataArea<Group>
 					queryConfig={{
-						filterOptions: [],
-						sortOptions: [],
-						initialFilters: [],
-						initialSorts: [],
+						filterOptions: groupsFilterOptions,
+						sortOptions: groupsSortOptions,
+						initialFilters: groupsInitialFilters,
+						initialSorts: groupsInitialSorts,
 						debounceTime: 300,
 					}}
 					dataConfig={{
 						queryKey: 'fetchGroups',
 						fetchFn: async (params) => {
 							const response = await GroupApi.getGroupsByFilter({
-								entity_type: GROUP_ENTITY_TYPE.PRICE,
 								limit: params.limit,
 								offset: params.offset,
+								filters: params.filters ?? [],
+								sort: params.sort ?? [],
 							});
 							return {
 								items: response.items as Group[],
@@ -77,9 +88,10 @@ const GroupsPage = () => {
 						},
 						probeFetchFn: async () => {
 							const response = await GroupApi.getGroupsByFilter({
-								entity_type: GROUP_ENTITY_TYPE.PRICE,
 								limit: 1,
 								offset: 0,
+								filters: [],
+								sort: [],
 							});
 							return {
 								items: response.items as Group[],
