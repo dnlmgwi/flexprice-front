@@ -58,7 +58,9 @@ const WalletTransactionsWidget = () => {
 
 	if (!wallets || wallets.length === 0) {
 		return (
-			<Card className='bg-white border border-[#E9E9E9] rounded-xl p-6'>
+			<Card
+				className='rounded-xl p-6'
+				style={{ backgroundColor: 'var(--portal-surface, white)', border: '1px solid var(--portal-border, #E9E9E9)' }}>
 				<EmptyState title='No wallet' description='No wallet has been set up for this account' />
 			</Card>
 		);
@@ -78,9 +80,13 @@ const WalletTransactionsWidget = () => {
 			)}
 
 			{/* Transactions */}
-			<Card className='bg-white border border-[#E9E9E9] rounded-xl overflow-hidden'>
-				<div className='p-6 border-b border-[#E9E9E9]'>
-					<h3 className='text-base font-medium text-zinc-950'>Transaction History</h3>
+			<Card
+				className='rounded-xl overflow-hidden'
+				style={{ backgroundColor: 'var(--portal-surface, white)', border: '1px solid var(--portal-border, #E9E9E9)' }}>
+				<div className='p-6' style={{ borderBottom: '1px solid var(--portal-border, #E9E9E9)' }}>
+					<h3 className='text-base font-medium' style={{ color: 'var(--portal-text-primary, #09090b)' }}>
+						Transaction History
+					</h3>
 				</div>
 				<div className='p-6'>
 					{transactionsLoading ? (

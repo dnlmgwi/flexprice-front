@@ -85,9 +85,11 @@ interface CustomerUsageChartProps {
 	title?: string;
 	description?: string;
 	className?: string;
+	/** Portal primary color — defaults to indigo if not provided */
+	primaryColor?: string;
 }
 
-export const CustomerUsageChart: React.FC<CustomerUsageChartProps> = ({ data, title, description, className }) => {
+export const CustomerUsageChart: React.FC<CustomerUsageChartProps> = ({ data, title, description, className, primaryColor }) => {
 	// Process the data for chart display
 	const { chartData, seriesConfig, seriesIds } = normalizeUsageData(data.items);
 
@@ -112,17 +114,18 @@ export const CustomerUsageChart: React.FC<CustomerUsageChartProps> = ({ data, ti
 		}
 	}, [chartData.length]);
 
-	// Create chart colors for the series - modern SaaS palette with subtle tones
+	// Create chart colors — portal primary first, then a teal/cyan palette for subsequent series
 	const getSeriesColor = (index: number) => {
+		if (index === 0 && primaryColor) return primaryColor;
 		const colors = [
-			'rgba(99, 102, 241, 0.9)', // Indigo with transparency
-			'rgba(14, 165, 233, 0.9)', // Sky blue with transparency
-			'rgba(79, 70, 229, 0.9)', // Violet with transparency
-			'rgba(56, 189, 248, 0.9)', // Light blue with transparency
-			'rgba(124, 58, 237, 0.9)', // Purple with transparency
-			'rgba(6, 182, 212, 0.9)', // Cyan with transparency
-			'rgba(168, 85, 247, 0.9)', // Fuchsia with transparency
-			'rgba(45, 212, 191, 0.9)', // Teal with transparency
+			'rgba(99, 102, 241, 0.9)', // Indigo
+			'rgba(14, 165, 233, 0.9)', // Sky blue
+			'rgba(79, 70, 229, 0.9)', // Violet
+			'rgba(56, 189, 248, 0.9)', // Light blue
+			'rgba(124, 58, 237, 0.9)', // Purple
+			'rgba(6, 182, 212, 0.9)', // Cyan
+			'rgba(168, 85, 247, 0.9)', // Fuchsia
+			'rgba(45, 212, 191, 0.9)', // Teal
 		];
 		return colors[index % colors.length];
 	};
@@ -236,11 +239,14 @@ export const CustomerUsageChart: React.FC<CustomerUsageChartProps> = ({ data, ti
 					<div className='flex justify-end mb-3'>
 						<button
 							onClick={handleZoomReset}
-							className='text-xs px-2.5 py-1 rounded-md bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 text-indigo-600 transition-colors'
+							className='text-xs px-2.5 py-1 rounded-md transition-colors'
 							style={{
 								display: zoomState.left !== 'dataMin' || zoomState.right !== 'dataMax' ? 'flex' : 'none',
 								alignItems: 'center',
 								gap: '4px',
+								backgroundColor: primaryColor ? `${primaryColor}1a` : 'rgba(238,242,255,1)',
+								border: `1px solid ${primaryColor ? `${primaryColor}33` : '#c7d2fe'}`,
+								color: primaryColor ?? '#6366f1',
 							}}>
 							<svg
 								xmlns='http://www.w3.org/2000/svg'
@@ -297,7 +303,7 @@ export const CustomerUsageChart: React.FC<CustomerUsageChartProps> = ({ data, ti
 									tickFormatter={(value) => value.toLocaleString()}
 								/>
 								<Tooltip
-									cursor={{ stroke: 'rgba(99, 102, 241, 0.4)', strokeWidth: 1, strokeDasharray: '3 3' }}
+									cursor={{ stroke: primaryColor ? `${primaryColor}66` : 'rgba(99,102,241,0.4)', strokeWidth: 1, strokeDasharray: '3 3' }}
 									content={(props) => {
 										const { active, payload, label } = props;
 										if (!active || !payload || !payload.length) return null;
@@ -405,8 +411,8 @@ export const CustomerUsageChart: React.FC<CustomerUsageChartProps> = ({ data, ti
 								<Brush
 									dataKey='date'
 									height={20}
-									stroke='rgba(99, 102, 241, 0.6)'
-									fill='rgba(243, 244, 246, 0.2)'
+									stroke={primaryColor ? `${primaryColor}99` : 'rgba(99, 102, 241, 0.6)'}
+									fill={primaryColor ? `${primaryColor}22` : 'rgba(243, 244, 246, 0.2)'}
 									travellerWidth={8}
 									y={330} // Position at the bottom of the chart, below the data lines
 									tickFormatter={(value) => {
@@ -442,10 +448,10 @@ export const CustomerUsageChart: React.FC<CustomerUsageChartProps> = ({ data, ti
 									<ReferenceArea
 										x1={zoomState.refAreaLeft}
 										x2={zoomState.refAreaRight}
-										stroke='rgba(99, 102, 241, 0.8)'
+										stroke={primaryColor ? `${primaryColor}cc` : 'rgba(99, 102, 241, 0.8)'}
 										strokeWidth={1}
 										strokeDasharray='3 3'
-										fill='rgba(99, 102, 241, 0.15)'
+										fill={primaryColor ? `${primaryColor}26` : 'rgba(99, 102, 241, 0.15)'}
 										fillOpacity={0.8}
 									/>
 								)}

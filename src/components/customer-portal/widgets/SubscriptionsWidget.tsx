@@ -29,30 +29,43 @@ const SubscriptionsWidget = ({ subscriptions, label }: SubscriptionsWidgetProps)
 
 	if (activeSubscriptions.length === 0) {
 		return (
-			<Card className='bg-white border border-[#E9E9E9] rounded-xl p-6'>
+			<Card
+				className='rounded-xl p-6'
+				style={{ backgroundColor: 'var(--portal-surface, white)', border: '1px solid var(--portal-border, #E9E9E9)' }}>
 				<EmptyState title='No active subscriptions' description='You do not have any active subscriptions at the moment' />
 			</Card>
 		);
 	}
 
 	return (
-		<Card className='bg-white border border-[#E9E9E9] rounded-xl overflow-hidden'>
-			<div className='p-6 border-b border-[#E9E9E9]'>
-				<h3 className='text-base font-medium text-zinc-950'>{label || 'Subscriptions'}</h3>
+		<Card
+			className='rounded-xl overflow-hidden'
+			style={{ backgroundColor: 'var(--portal-surface, white)', border: '1px solid var(--portal-border, #E9E9E9)' }}>
+			<div className='p-6' style={{ borderBottom: '1px solid var(--portal-border, #E9E9E9)' }}>
+				<h3 className='text-base font-medium' style={{ color: 'var(--portal-text-primary, #09090b)' }}>
+					{label || 'Subscriptions'}
+				</h3>
 			</div>
 			<div className='p-6 space-y-4'>
 				{activeSubscriptions.map((subscription) => (
-					<div key={subscription.id} className='border border-[#E9E9E9] rounded-lg p-4 hover:bg-zinc-50 transition-colors'>
+					<div
+						key={subscription.id}
+						className='rounded-lg p-4 transition-colors'
+						style={{ border: '1px solid var(--portal-border, #E9E9E9)' }}>
 						<div className='flex items-start justify-between mb-3'>
 							<div>
-								<h4 className='text-sm font-medium text-zinc-950'>{subscription.plan?.name || 'Unknown Plan'}</h4>
+								<h4 className='text-sm font-medium' style={{ color: 'var(--portal-text-primary, #09090b)' }}>
+									{subscription.plan?.name || 'Unknown Plan'}
+								</h4>
 								{subscription.plan?.description && (
-									<p className='text-xs text-zinc-500 mt-0.5 line-clamp-1'>{subscription.plan.description}</p>
+									<p className='text-xs mt-0.5 line-clamp-1' style={{ color: 'var(--portal-text-secondary, #71717a)' }}>
+										{subscription.plan.description}
+									</p>
 								)}
 							</div>
 							{getStatusChip(subscription.subscription_status)}
 						</div>
-						<div className='flex flex-wrap gap-4 text-xs text-zinc-500'>
+						<div className='flex flex-wrap gap-4 text-xs' style={{ color: 'var(--portal-text-secondary, #71717a)' }}>
 							<div className='flex items-center gap-1.5'>
 								<Calendar className='h-3.5 w-3.5' />
 								<span>

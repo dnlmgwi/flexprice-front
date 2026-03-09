@@ -7,6 +7,7 @@ import { DashboardAnalyticsRequest } from '@/types';
 import { MetricCardsConfig } from '@/types/dto/PortalConfig';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MetricCard } from '@/components/molecules';
+import { usePortalConfig } from '@/context/PortalConfigContext';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -46,6 +47,8 @@ const DEFAULT_CONFIG: MetricCardsConfig = {
 const MetricCardsWidget = ({ analyticsParams, config }: MetricCardsWidgetProps) => {
 	const mergedConfig: MetricCardsConfig = { ...DEFAULT_CONFIG, ...config };
 	const { show_custom_metrics: showCustom, show_revenue_metric: showRevenue, show_cost_metrics: showCost } = mergedConfig;
+	const { config: portalConfig } = usePortalConfig();
+	const hasTheme = !!portalConfig.theme;
 
 	// ── Revenue analytics (custom_analytics[]) ───────────────────────────────
 	const {
@@ -93,7 +96,10 @@ const MetricCardsWidget = ({ analyticsParams, config }: MetricCardsWidgetProps) 
 		return (
 			<div className='grid grid-cols-2 md:grid-cols-4 gap-3'>
 				{Array.from({ length: skeletonCount }).map((_, i) => (
-					<div key={i} className='bg-white border border-[#E5E7EB] p-[25px] rounded-md space-y-3'>
+					<div
+						key={i}
+						className='rounded-md p-[25px] space-y-3'
+						style={{ backgroundColor: 'var(--portal-surface, white)', border: '1px solid var(--portal-border, #E5E7EB)' }}>
 						<Skeleton className='h-4 w-24' />
 						<Skeleton className='h-7 w-32' />
 					</div>
@@ -128,24 +134,64 @@ const MetricCardsWidget = ({ analyticsParams, config }: MetricCardsWidgetProps) 
 				width: totalCards === 1 ? '25%' : '100%',
 			}}>
 			{/* Revenue metric */}
-			{hasRevenueData && <MetricCard title='Revenue' value={totalRevenue} currency={currency} />}
+			{hasRevenueData && (
+				<PortalMetricWrapper hasTheme={hasTheme}>
+					<MetricCard title='Revenue' value={totalRevenue} currency={currency} />
+				</PortalMetricWrapper>
+			)}
 
 			{/* Cost metrics — 3 cards */}
 			{hasCostData && (
 				<>
-					<MetricCard title='Cost' value={totalCost} currency={currency} />
-					<MetricCard title='Margin' value={margin} currency={currency} showChangeIndicator isNegative={margin < 0} />
-					<MetricCard title='Margin %' value={marginPercent} isPercent showChangeIndicator isNegative={marginPercent < 0} />
+					<PortalMetricWrapper hasTheme={hasTheme}>
+						<MetricCard title='Cost' value={totalCost} currency={currency} />
+					</PortalMetricWrapper>
+					<PortalMetricWrapper hasTheme={hasTheme}>
+						<MetricCard title='Margin' value={margin} currency={currency} showChangeIndicator isNegative={margin < 0} />
+					</PortalMetricWrapper>
+					<PortalMetricWrapper hasTheme={hasTheme}>
+						<MetricCard title='Margin %' value={marginPercent} isPercent showChangeIndicator isNegative={marginPercent < 0} />
+					</PortalMetricWrapper>
 				</>
 			)}
 
-			{/* Custom metrics from custom_analytics[] */}
 			{hasCustomData &&
 				customItems.map((item) => {
 					const value = parseFloat(item.value);
 					const displayName = CUSTOM_ANALYTICS_DISPLAY_NAMES[item.id] ?? CUSTOM_ANALYTICS_DISPLAY_NAMES[item.name] ?? item.name;
-					return <MetricCard key={item.id} title={displayName} value={isNaN(value) ? 0 : value} />;
+					const isCurrencyMetric = item.id === 'revenue-per-minute';
+					return (
+						<PortalMetricWrapper key={item.id} hasTheme={hasTheme}>
+							<MetricCard title={displayName} value={isNaN(value) ? 0 : value} currency={isCurrencyMetric ? currency : undefined} />
+						</PortalMetricWrapper>
+					);
 				})}
+		</div>
+	);
+};
+
+/**
+ * A portal-aware wrapper that overrides MetricCard's hardcoded white background
+ * with the tenant's surface/border/text CSS variables when a theme is active.
+ * Without a theme it renders as a transparent pass-through (MetricCard's own styles apply).
+ */
+const PortalMetricWrapper = ({ hasTheme, children }: { hasTheme: boolean; children: React.ReactNode }) => {
+	if (!hasTheme) return <>{children}</>;
+	return (
+		<div
+			className='rounded-md overflow-hidden'
+			style={{
+				backgroundColor: 'var(--portal-surface)',
+				border: '1px solid var(--portal-border)',
+			}}>
+			{/* Override MetricCard internals via CSS cascade */}
+			<style>{`
+				.portal-metric-inner .bg-white { background-color: transparent !important; }
+				.portal-metric-inner .border { border-color: transparent !important; }
+				.portal-metric-inner p:first-child { color: var(--portal-text-secondary) !important; }
+				.portal-metric-inner p:last-child { color: var(--portal-text-primary) !important; }
+			`}</style>
+			<div className='portal-metric-inner'>{children}</div>
 		</div>
 	);
 };

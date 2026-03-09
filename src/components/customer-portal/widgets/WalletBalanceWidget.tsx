@@ -49,8 +49,10 @@ const WalletBalanceWidget = () => {
 
 	if (isLoading) {
 		return (
-			<Card className='bg-white border border-[#E9E9E9] rounded-xl overflow-hidden'>
-				<div className='p-6 border-b border-[#E9E9E9]'>
+			<Card
+				className='rounded-xl overflow-hidden'
+				style={{ backgroundColor: 'var(--portal-surface, white)', border: '1px solid var(--portal-border, #E9E9E9)' }}>
+				<div className='p-6' style={{ borderBottom: '1px solid var(--portal-border, #E9E9E9)' }}>
 					<div className='h-5 w-32 bg-zinc-100 animate-pulse rounded' />
 				</div>
 				<div className='p-6'>
@@ -65,7 +67,9 @@ const WalletBalanceWidget = () => {
 
 	if (!wallet) {
 		return (
-			<Card className='bg-white border border-[#E9E9E9] rounded-xl p-6'>
+			<Card
+				className='rounded-xl p-6'
+				style={{ backgroundColor: 'var(--portal-surface, white)', border: '1px solid var(--portal-border, #E9E9E9)' }}>
 				<EmptyState title='No wallet' description='No wallet has been set up for this account' />
 			</Card>
 		);
@@ -74,14 +78,20 @@ const WalletBalanceWidget = () => {
 	const currencySymbol = getCurrencySymbol(walletBalance?.currency ?? wallet.currency ?? 'USD');
 
 	return (
-		<Card className='bg-white border border-[#E9E9E9] rounded-xl overflow-hidden'>
-			<div className='p-6 border-b border-[#E9E9E9]'>
+		<Card
+			className='rounded-xl overflow-hidden'
+			style={{ backgroundColor: 'var(--portal-surface, white)', border: '1px solid var(--portal-border, #E9E9E9)' }}>
+			<div className='p-6' style={{ borderBottom: '1px solid var(--portal-border, #E9E9E9)' }}>
 				<div className='flex items-center gap-3'>
-					<div className='h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center'>
-						<WalletIcon className='h-5 w-5 text-blue-600' />
+					<div
+						className='h-10 w-10 rounded-full flex items-center justify-center'
+						style={{ backgroundColor: 'var(--portal-primary, #eff6ff)' }}>
+						<WalletIcon className='h-5 w-5' style={{ color: 'var(--portal-text-primary, #2563eb)' }} />
 					</div>
 					<div>
-						<h3 className='text-base font-medium text-zinc-950'>{wallet.name || 'Wallet'}</h3>
+						<h3 className='text-base font-medium' style={{ color: 'var(--portal-text-primary, #09090b)' }}>
+							{wallet.name || 'Wallet'}
+						</h3>
 						{wallet.wallet_status && getWalletStatusChip(wallet.wallet_status)}
 					</div>
 				</div>
@@ -95,14 +105,18 @@ const WalletBalanceWidget = () => {
 					</div>
 				) : (
 					<div>
-						<span className='text-sm text-zinc-500 block mb-2'>Balance</span>
+						<span className='text-sm block mb-2' style={{ color: 'var(--portal-text-secondary, #71717a)' }}>
+							Balance
+						</span>
 						<div className='flex items-baseline gap-2'>
-							<span className='text-4xl font-semibold text-zinc-950'>
+							<span className='text-4xl font-semibold' style={{ color: 'var(--portal-text-primary, #09090b)' }}>
 								{formatAmount(walletBalance?.real_time_credit_balance ?? wallet.credit_balance?.toString() ?? '0')}
 							</span>
-							<span className='text-base font-normal text-zinc-500'>credits</span>
+							<span className='text-base font-normal' style={{ color: 'var(--portal-text-secondary, #71717a)' }}>
+								credits
+							</span>
 						</div>
-						<p className='text-sm text-zinc-500 mt-1'>
+						<p className='text-sm mt-1' style={{ color: 'var(--portal-text-secondary, #71717a)' }}>
 							{currencySymbol}
 							{formatAmount(walletBalance?.real_time_balance ?? wallet.balance?.toString() ?? '0')} value
 						</p>

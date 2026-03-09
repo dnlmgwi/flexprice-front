@@ -30,6 +30,7 @@ interface CustomerPortalProps {
 
 const CustomerPortalInner = () => {
 	const { config } = usePortalConfig();
+	const hasTheme = !!config.theme;
 
 	const {
 		data: customerData,
@@ -104,7 +105,7 @@ const CustomerPortalInner = () => {
 
 	if (customerLoading) {
 		return (
-			<div className='min-h-screen bg-[#fafafa] flex items-center justify-center'>
+			<div className='min-h-screen flex items-center justify-center' style={hasTheme ? { backgroundColor: 'var(--portal-bg)' } : undefined}>
 				<Loader />
 			</div>
 		);
@@ -113,7 +114,9 @@ const CustomerPortalInner = () => {
 	if (customerError || !customerData) return null;
 
 	return (
-		<div className='min-h-screen bg-[#fafafa]'>
+		<div
+			className={hasTheme ? 'min-h-screen' : 'min-h-screen bg-[#fafafa]'}
+			style={hasTheme ? { backgroundColor: 'var(--portal-bg)' } : undefined}>
 			<PortalHeader customer={customerData} />
 
 			<motion.div
@@ -123,18 +126,34 @@ const CustomerPortalInner = () => {
 				className='max-w-6xl mx-auto px-4 sm:px-6 py-6'>
 				{/* Top-level Section Tab Bar */}
 				<div className='mb-6'>
-					<div className='flex space-x-1 bg-white border border-[#E9E9E9] rounded-[6px] p-1 w-fit'>
-						{visibleSections.map((section) => (
-							<button
-								key={section.id}
-								onClick={() => setActiveSectionId(section.id)}
-								className={cn(
-									'px-4 py-2 text-sm font-medium rounded-[6px] transition-colors',
-									activeSection?.id === section.id ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50',
-								)}>
-								{section.label}
-							</button>
-						))}
+					<div
+						className='flex space-x-1 rounded-[6px] p-1 w-fit'
+						style={
+							hasTheme
+								? { backgroundColor: 'var(--portal-surface)', border: '1px solid var(--portal-border)' }
+								: { backgroundColor: 'white', border: '1px solid #E9E9E9' }
+						}>
+						{visibleSections.map((section) => {
+							const isActive = activeSection?.id === section.id;
+							return (
+								<button
+									key={section.id}
+									onClick={() => setActiveSectionId(section.id)}
+									className={cn(
+										'px-4 py-2 text-sm font-medium rounded-[6px] transition-colors',
+										!hasTheme && (isActive ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50'),
+									)}
+									style={
+										hasTheme
+											? isActive
+												? { backgroundColor: 'var(--portal-primary)', color: 'white' }
+												: { color: 'var(--portal-text-secondary, #71717a)' }
+											: undefined
+									}>
+									{section.label}
+								</button>
+							);
+						})}
 					</div>
 				</div>
 
@@ -142,7 +161,7 @@ const CustomerPortalInner = () => {
 				{activeSection && <SectionContent key={activeSection.id} section={activeSection} />}
 
 				{/* Footer */}
-				<div className='mt-12 pt-6 border-t border-[#E9E9E9] text-center'>
+				<div className='mt-12 pt-6 text-center' style={{ borderTop: `1px solid ${hasTheme ? 'var(--portal-border)' : '#E9E9E9'}` }}>
 					<p className='text-xs text-zinc-400'>
 						Powered by{' '}
 						<a

@@ -9,11 +9,7 @@ import { DashboardAnalyticsRequest } from '@/types';
 import { formatNumber, getCurrencySymbol } from '@/utils';
 import { ChevronDown, ChevronUp, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const CHEVRON_UP_SVG = '/assets/svg/chevron-up-svgrepo-com.svg';
-const CHEVRON_DOWN_SVG = '/assets/svg/chevron-down-svgrepo-com.svg';
-const EXPAND_ALL_SVG = '/assets/svg/expand-all-svgrepo-com.svg';
-const COLLAPSE_ALL_SVG = '/assets/svg/collapse-all-svgrepo-com.svg';
+import { usePortalConfig } from '@/context/PortalConfigContext';
 
 interface UsageBreakdownWidgetProps {
 	analyticsParams: DashboardAnalyticsRequest;
@@ -70,6 +66,9 @@ function renderTotalCostPortal(row: UsageAnalyticItem) {
  * Returns null if there are no items — no empty container shown.
  */
 const UsageBreakdownWidget = ({ analyticsParams, label }: UsageBreakdownWidgetProps) => {
+	const { config: portalConfig } = usePortalConfig();
+	const hasTheme = !!portalConfig.theme;
+	const rowStyle = hasTheme ? { backgroundColor: 'var(--portal-surface)', borderColor: 'var(--portal-border)' } : undefined;
 	const {
 		data: analyticsData,
 		isLoading,
@@ -144,10 +143,8 @@ const UsageBreakdownWidget = ({ analyticsParams, label }: UsageBreakdownWidgetPr
 		return (
 			<button
 				type='button'
-				className={cn(
-					'group -ml-1 inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-left transition-colors',
-					isActive ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700',
-				)}
+				className='group -ml-1 inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-left transition-colors'
+				style={{ color: 'var(--portal-text-primary, #374151)' }}
 				onClick={() => {
 					if (sortField !== field) {
 						setSortField(field);
@@ -158,11 +155,11 @@ const UsageBreakdownWidget = ({ analyticsParams, label }: UsageBreakdownWidgetPr
 				}}>
 				<span className='leading-none'>{label}</span>
 				{sortDirection === 'asc' && isActive ? (
-					<ChevronUp className='h-3.5 w-3.5 shrink-0 text-gray-900' />
+					<ChevronUp className='h-3.5 w-3.5 shrink-0' style={{ color: 'var(--portal-text-primary, #374151)' }} />
 				) : isActive ? (
-					<ChevronDown className='h-3.5 w-3.5 shrink-0 text-gray-900' />
+					<ChevronDown className='h-3.5 w-3.5 shrink-0' style={{ color: 'var(--portal-text-primary, #374151)' }} />
 				) : (
-					<ChevronsUpDown className='h-3.5 w-3.5 shrink-0 text-gray-400 group-hover:text-gray-500' />
+					<ChevronsUpDown className='h-3.5 w-3.5 shrink-0' style={{ color: 'var(--portal-text-secondary, #9ca3af)' }} />
 				)}
 			</button>
 		);
@@ -173,8 +170,10 @@ const UsageBreakdownWidget = ({ analyticsParams, label }: UsageBreakdownWidgetPr
 
 	if (isLoading) {
 		return (
-			<Card className='bg-white border border-[#E9E9E9] rounded-xl overflow-hidden'>
-				<div className='p-6 border-b border-[#E9E9E9]'>
+			<Card
+				className='rounded-xl overflow-hidden'
+				style={{ backgroundColor: 'var(--portal-surface, white)', border: '1px solid var(--portal-border, #E9E9E9)' }}>
+				<div className='p-6' style={{ borderBottom: '1px solid var(--portal-border, #E9E9E9)' }}>
 					<div className='h-5 w-40 bg-zinc-100 animate-pulse rounded' />
 				</div>
 				<div className='p-6 space-y-3'>
@@ -187,115 +186,157 @@ const UsageBreakdownWidget = ({ analyticsParams, label }: UsageBreakdownWidgetPr
 	}
 
 	return (
-		<Card className='bg-white border border-[#E9E9E9] rounded-xl overflow-hidden'>
+		<Card
+			className='rounded-xl overflow-hidden'
+			style={{ backgroundColor: 'var(--portal-surface, white)', border: '1px solid var(--portal-border, #E9E9E9)' }}>
 			<div className='p-6'>
 				<div className='flex items-center justify-between'>
-					<h3 className='text-base font-medium text-zinc-950'>{label || 'Usage Breakdown'}</h3>
+					<h3 className='text-base font-semibold' style={{ color: 'var(--portal-text-primary, #09090b)' }}>
+						{label || 'Usage Breakdown'}
+					</h3>
 					{hasGroups && (
 						<button
 							type='button'
 							onClick={toggleExpandAll}
 							className='inline-flex items-center justify-center text-gray-600 hover:text-gray-900'
 							aria-label={allExpanded ? 'Collapse all' : 'Expand all'}>
-							<img src={allExpanded ? COLLAPSE_ALL_SVG : EXPAND_ALL_SVG} alt='' className='h-4 w-4' />
+							{allExpanded ? (
+								<ChevronUp className='h-4 w-4 transition-colors' style={{ color: 'var(--portal-text-secondary, #6b7280)' }} />
+							) : (
+								<ChevronsUpDown className='h-4 w-4 transition-colors' style={{ color: 'var(--portal-text-secondary, #6b7280)' }} />
+							)}
 						</button>
 					)}
 				</div>
 			</div>
 
 			<div className='px-6 pb-6'>
-				<Table>
-					<TableHeader className='h-10 border-b border-gray-200'>
-						<TableRow className='border-b border-gray-200'>
-							<TableHead className='pl-0 font-semibold text-gray-700 text-[13px]'>Feature</TableHead>
-							<TableHead className='font-semibold text-gray-700 text-[13px]'>
-								{renderSortableHeader('total_usage', 'Total Usage')}
-							</TableHead>
-							<TableHead className='font-semibold text-gray-700 text-[13px]'>{renderSortableHeader('total_cost', 'Total Cost')}</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{groupedBuckets.map((bucket) => {
-							const isExpanded = expandedGroupIds.has(bucket.groupKey);
-							const aggregateCost = bucket.items.reduce((s, i) => s + Number(i.total_cost), 0);
-							const firstCurrency = bucket.items[0]?.currency;
-							return (
-								<React.Fragment key={bucket.groupKey}>
-									<TableRow
-										role='button'
-										tabIndex={0}
-										onClick={() => bucket.items.length > 0 && toggleGroup(bucket.groupKey)}
-										onKeyDown={(e) => {
-											if ((e.key === 'Enter' || e.key === ' ') && bucket.items.length > 0) {
-												e.preventDefault();
-												toggleGroup(bucket.groupKey);
-											}
-										}}
-										className={cn(
-											'h-10 align-middle border-b border-gray-200 bg-white cursor-pointer hover:bg-gray-50/50',
-											bucket.items.length === 0 && 'border-b-0',
-											bucket.items.length === 0 && 'cursor-default',
-										)}>
-										<TableCell className='pl-0 py-2.5 align-middle'>
-											<div className='inline-flex items-center gap-2 text-left'>
-												<span className='font-semibold text-gray-900 text-[13px]'>{bucket.groupName}</span>
-												{bucket.items.length > 0 ? (
-													<img
-														src={isExpanded ? CHEVRON_UP_SVG : CHEVRON_DOWN_SVG}
-														alt=''
-														className='h-4 w-4 shrink-0 text-gray-600'
-														aria-hidden
-													/>
-												) : null}
-											</div>
-										</TableCell>
-										<TableCell className='py-2.5 font-normal text-gray-700 text-[13px]'>—</TableCell>
-										<TableCell className='py-2.5 font-normal text-gray-600 text-[13px]'>
-											{firstCurrency ? (
-												<>
-													{getCurrencySymbol(firstCurrency)}
-													{formatNumber(aggregateCost, 2)}
-												</>
-											) : (
-												'—'
+				{/* Inner bordered rectangle — matches Figma design */}
+				<div className='rounded-lg overflow-hidden' style={{ border: '1px solid var(--portal-border, #e5e7eb)' }}>
+					<Table>
+						<TableHeader className='h-10' style={{ borderBottom: '1px solid var(--portal-border, #e5e7eb)' }}>
+							<TableRow style={{ borderBottom: '1px solid var(--portal-border, #e5e7eb)' }}>
+								<TableHead className='pl-3 font-semibold text-[13px] w-[35%]' style={{ color: 'var(--portal-text-primary, #374151)' }}>
+									Feature
+								</TableHead>
+								<TableHead className='font-semibold text-[13px]' style={{ color: 'var(--portal-text-primary, #374151)' }}>
+									{renderSortableHeader('total_usage', 'Total Usage')}
+								</TableHead>
+								<TableHead className='font-semibold text-[13px]' style={{ color: 'var(--portal-text-primary, #374151)' }}>
+									{renderSortableHeader('total_cost', 'Total Cost')}
+								</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{groupedBuckets.map((bucket) => {
+								const isExpanded = expandedGroupIds.has(bucket.groupKey);
+								const aggregateCost = bucket.items.reduce((s, i) => s + Number(i.total_cost), 0);
+								const firstCurrency = bucket.items[0]?.currency;
+								return (
+									<React.Fragment key={bucket.groupKey}>
+										<TableRow
+											role='button'
+											tabIndex={0}
+											onClick={() => bucket.items.length > 0 && toggleGroup(bucket.groupKey)}
+											onKeyDown={(e) => {
+												if ((e.key === 'Enter' || e.key === ' ') && bucket.items.length > 0) {
+													e.preventDefault();
+													toggleGroup(bucket.groupKey);
+												}
+											}}
+											className={cn(
+												'h-10 align-middle border-b cursor-pointer outline-none focus:outline-none',
+												bucket.items.length === 0 && 'border-b-0 cursor-default',
 											)}
-										</TableCell>
-									</TableRow>
-									{isExpanded &&
-										bucket.items.map((row, childIndex) => (
-											<TableRow
-												key={`${bucket.groupKey}:${row.feature_id ?? row.price_id ?? row.meter_id ?? childIndex}`}
-												className='h-10 align-middle border-b border-gray-200 bg-white hover:bg-gray-50/50'>
-												<TableCell className='py-2.5 pl-0 font-normal text-gray-700 text-[13px] align-middle'>
-													<span>{row.name || row.feature?.name || row.event_name || 'Unknown'}</span>
-												</TableCell>
-												<TableCell className='py-2.5 font-normal text-gray-600 text-[13px]'>{renderTotalUsagePortal(row)}</TableCell>
-												<TableCell className='py-2.5 font-normal text-gray-600 text-[13px]'>{renderTotalCostPortal(row)}</TableCell>
-											</TableRow>
-										))}
-								</React.Fragment>
-							);
-						})}
-						{ungroupedItems.map((row, index) => (
-							<TableRow
-								key={`ungrouped:${row.feature_id ?? row.price_id ?? row.meter_id ?? index}`}
-								className='h-10 align-middle border-b border-gray-200 bg-white hover:bg-gray-50/50'>
-								<TableCell className='pl-0 py-2.5 font-normal text-gray-700 text-[13px]'>
-									<span>{row.name || row.feature?.name || row.event_name || 'Unknown'}</span>
-								</TableCell>
-								<TableCell className='py-2.5 font-normal text-gray-600 text-[13px]'>{renderTotalUsagePortal(row)}</TableCell>
-								<TableCell className='py-2.5 font-normal text-gray-600 text-[13px]'>{renderTotalCostPortal(row)}</TableCell>
-							</TableRow>
-						))}
-						{items.length === 0 && (
-							<TableRow className='bg-white'>
-								<TableCell colSpan={3} className='pl-0 py-4 font-normal text-gray-500 text-[13px]'>
-									--
-								</TableCell>
-							</TableRow>
-						)}
-					</TableBody>
-				</Table>
+											style={rowStyle}>
+											<TableCell className='pl-3 py-2.5 align-middle'>
+												<div className='inline-flex items-center gap-2 text-left'>
+													<span className='font-semibold text-[13px]' style={{ color: 'var(--portal-text-primary, #111827)' }}>
+														{bucket.groupName}
+													</span>
+													{bucket.items.length > 0 ? (
+														isExpanded ? (
+															<ChevronUp
+																className='h-4 w-4 shrink-0 transition-colors'
+																style={{ color: 'var(--portal-text-secondary, #6b7280)' }}
+																aria-hidden
+															/>
+														) : (
+															<ChevronDown
+																className='h-4 w-4 shrink-0 transition-colors'
+																style={{ color: 'var(--portal-text-secondary, #6b7280)' }}
+																aria-hidden
+															/>
+														)
+													) : null}
+												</div>
+											</TableCell>
+											{/* Total Usage — aggregate not available for groups */}
+											<TableCell className='py-2.5 font-normal text-[13px]' style={{ color: 'var(--portal-text-secondary, #6b7280)' }}>
+												—
+											</TableCell>
+											<TableCell className='py-2.5 font-normal text-[13px]' style={{ color: 'var(--portal-text-secondary, #6b7280)' }}>
+												{firstCurrency ? (
+													<>
+														{getCurrencySymbol(firstCurrency)}
+														{formatNumber(aggregateCost, 2)}
+													</>
+												) : (
+													'—'
+												)}
+											</TableCell>
+										</TableRow>
+										{isExpanded &&
+											bucket.items.map((row, childIndex) => (
+												<TableRow
+													key={`${bucket.groupKey}:${row.feature_id ?? row.price_id ?? row.meter_id ?? childIndex}`}
+													className='h-10 align-middle border-b'
+													style={rowStyle}>
+													<TableCell
+														className='py-2.5 pl-6 font-normal text-[13px] align-middle'
+														style={{ color: 'var(--portal-text-primary, #374151)' }}>
+														<span>{row.name || row.feature?.name || row.event_name || 'Unknown'}</span>
+													</TableCell>
+													<TableCell className='py-2.5 font-normal text-[13px]' style={{ color: 'var(--portal-text-secondary, #6b7280)' }}>
+														{renderTotalUsagePortal(row)}
+													</TableCell>
+													<TableCell className='py-2.5 font-normal text-[13px]' style={{ color: 'var(--portal-text-secondary, #6b7280)' }}>
+														{renderTotalCostPortal(row)}
+													</TableCell>
+												</TableRow>
+											))}
+									</React.Fragment>
+								);
+							})}
+							{ungroupedItems.map((row, index) => (
+								<TableRow
+									key={`ungrouped:${row.feature_id ?? row.price_id ?? row.meter_id ?? index}`}
+									className='h-10 align-middle border-b'
+									style={rowStyle}>
+									<TableCell className='pl-3 py-2.5 font-normal text-[13px]' style={{ color: 'var(--portal-text-primary, #374151)' }}>
+										<span>{row.name || row.feature?.name || row.event_name || 'Unknown'}</span>
+									</TableCell>
+									<TableCell className='py-2.5 font-normal text-[13px]' style={{ color: 'var(--portal-text-secondary, #6b7280)' }}>
+										{renderTotalUsagePortal(row)}
+									</TableCell>
+									<TableCell className='py-2.5 font-normal text-[13px]' style={{ color: 'var(--portal-text-secondary, #6b7280)' }}>
+										{renderTotalCostPortal(row)}
+									</TableCell>
+								</TableRow>
+							))}
+							{items.length === 0 && (
+								<TableRow style={rowStyle}>
+									<TableCell
+										colSpan={3}
+										className='pl-3 py-4 font-normal text-[13px]'
+										style={{ color: 'var(--portal-text-secondary, #6b7280)' }}>
+										--
+									</TableCell>
+								</TableRow>
+							)}
+						</TableBody>
+					</Table>
+				</div>
 			</div>
 		</Card>
 	);

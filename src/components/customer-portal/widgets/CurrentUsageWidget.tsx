@@ -15,9 +15,13 @@ const CurrentUsageWidget = ({ usageData, label }: CurrentUsageWidgetProps) => {
 	if (meteredUsage.length === 0) return null;
 
 	return (
-		<Card className='bg-white border border-[#E9E9E9] rounded-xl overflow-hidden'>
-			<div className='p-6 border-b border-[#E9E9E9]'>
-				<h3 className='text-base font-medium text-zinc-950'>{label || 'Usage Quota'}</h3>
+		<Card
+			className='rounded-xl overflow-hidden'
+			style={{ backgroundColor: 'var(--portal-surface, white)', border: '1px solid var(--portal-border, #E9E9E9)' }}>
+			<div className='p-6' style={{ borderBottom: '1px solid var(--portal-border, #E9E9E9)' }}>
+				<h3 className='text-base font-medium' style={{ color: 'var(--portal-text-primary, #09090b)' }}>
+					{label || 'Usage Quota'}
+				</h3>
 			</div>
 			<div className='p-6 space-y-4'>
 				{meteredUsage.map((item, index) => {
@@ -29,8 +33,10 @@ const CurrentUsageWidget = ({ usageData, label }: CurrentUsageWidgetProps) => {
 					return (
 						<div key={item.feature?.id || index} className='space-y-2'>
 							<div className='flex items-center justify-between'>
-								<span className='text-sm text-zinc-700'>{item.feature?.name || 'Unknown Feature'}</span>
-								<span className='text-sm text-zinc-500'>
+								<span className='text-sm' style={{ color: 'var(--portal-text-primary, #09090b)' }}>
+									{item.feature?.name || 'Unknown Feature'}
+								</span>
+								<span className='text-sm' style={{ color: 'var(--portal-text-secondary, #71717a)' }}>
 									{formatAmount(usage.toString())}
 									{limit ? ` / ${formatAmount(limit.toString())}` : ' / Unlimited'}
 								</span>
@@ -38,12 +44,8 @@ const CurrentUsageWidget = ({ usageData, label }: CurrentUsageWidgetProps) => {
 							<Progress
 								value={item.is_unlimited ? 0 : percentage}
 								className='h-2'
-								indicatorColor={
-									isOverLimit
-										? 'bg-gradient-to-r from-red-600 to-red-400'
-										: 'bg-gradient-to-r from-[var(--portal-primary,#6167d9)] to-[var(--portal-secondary,#2563eb)]'
-								}
-								backgroundColor={isOverLimit ? 'bg-red-50' : 'bg-blue-100'}
+								indicatorColor={isOverLimit ? 'bg-gradient-to-r from-red-600 to-red-400' : 'bg-[var(--portal-primary,#6167d9)]'}
+								backgroundColor={isOverLimit ? 'bg-red-50' : 'bg-zinc-100'}
 							/>
 						</div>
 					);

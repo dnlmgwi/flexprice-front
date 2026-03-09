@@ -9,8 +9,8 @@ import { PAYMENT_STATUS } from '@/constants/payment';
 import { formatDateShort, getCurrencySymbol } from '@/utils/common/helper_functions';
 import { formatAmount } from '@/components/atoms/Input/Input';
 import { Download, Loader2, Search } from 'lucide-react';
-import { Input } from '@/components/ui';
 import EmptyState from '../EmptyState';
+import { usePortalConfig } from '@/context/PortalConfigContext';
 
 /** Priority: paid > voided > draft > overdue > pending */
 const getStatusChip = (invoice: Invoice) => {
@@ -27,29 +27,40 @@ interface InvoicesTableProps {
 	currencySymbol: string;
 	onDownloadPdf: (invoice: Invoice) => void;
 	downloadPendingId: string | null;
+	hasTheme: boolean;
 }
 
-const InvoicesTable = ({ invoices, currencySymbol, onDownloadPdf, downloadPendingId }: InvoicesTableProps) => (
+const InvoicesTable = ({ invoices, currencySymbol, onDownloadPdf, downloadPendingId, hasTheme }: InvoicesTableProps) => (
 	<div className='overflow-x-auto'>
 		<table className='w-full'>
 			<thead>
-				<tr className='border-b border-[#E9E9E9] bg-zinc-50'>
-					<th className='text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider'>Date</th>
-					<th className='text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider'>Invoice #</th>
-					<th className='text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider'>Status</th>
-					<th className='text-right px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider'>Amount</th>
-					<th className='text-center px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider'>Download</th>
+				<tr
+					className='border-b'
+					style={{
+						backgroundColor: 'var(--portal-surface, #f9fafb)',
+						borderColor: 'var(--portal-border, #E9E9E9)',
+					}}>
+					{(['DATE', 'INVOICE #', 'STATUS', 'AMOUNT', 'DOWNLOAD'] as const).map((col) => (
+						<th
+							key={col}
+							className={`px-4 py-3 text-xs font-medium uppercase tracking-wider ${col === 'AMOUNT' ? 'text-right' : col === 'DOWNLOAD' ? 'text-center' : 'text-left'}`}
+							style={{ color: 'var(--portal-text-secondary, #71717a)' }}>
+							{col}
+						</th>
+					))}
 				</tr>
 			</thead>
-			<tbody className='divide-y divide-[#E9E9E9]'>
+			<tbody className='divide-y' style={{ borderColor: 'var(--portal-border, #E9E9E9)' }}>
 				{invoices.map((invoice) => (
-					<tr key={invoice.id} className='hover:bg-zinc-50 transition-colors'>
-						<td className='px-4 py-3 text-sm text-zinc-700'>
+					<tr key={invoice.id} className='transition-colors' style={{ backgroundColor: 'var(--portal-surface, white)' }}>
+						<td className='px-4 py-3 text-sm' style={{ color: 'var(--portal-text-secondary, #71717a)' }}>
 							{invoice.finalized_at ? formatDateShort(invoice.finalized_at) : formatDateShort(invoice.created_at)}
 						</td>
-						<td className='px-4 py-3 text-sm text-zinc-900 font-medium'>{invoice.invoice_number || `INV-${invoice.id.slice(0, 8)}`}</td>
+						<td className='px-4 py-3 text-sm font-medium' style={{ color: 'var(--portal-text-primary, #09090b)' }}>
+							{invoice.invoice_number || `INV-${invoice.id.slice(0, 8)}`}
+						</td>
 						<td className='px-4 py-3'>{getStatusChip(invoice)}</td>
-						<td className='px-4 py-3 text-sm text-zinc-900 text-right font-medium'>
+						<td className='px-4 py-3 text-sm text-right font-medium' style={{ color: 'var(--portal-text-primary, #09090b)' }}>
 							{currencySymbol}
 							{formatAmount(String(invoice.total ?? 0))}
 						</td>
@@ -58,7 +69,8 @@ const InvoicesTable = ({ invoices, currencySymbol, onDownloadPdf, downloadPendin
 								<button
 									onClick={() => onDownloadPdf(invoice)}
 									disabled={downloadPendingId !== null}
-									className='p-2 hover:bg-zinc-100 rounded-md transition-colors text-zinc-500 hover:text-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed'>
+									className='p-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+									style={hasTheme ? { backgroundColor: 'var(--portal-primary)', color: 'white' } : { color: '#71717a' }}>
 									{downloadPendingId === invoice.id ? <Loader2 className='h-4 w-4 animate-spin' /> : <Download className='h-4 w-4' />}
 								</button>
 							)}
@@ -77,6 +89,8 @@ const InvoicesTable = ({ invoices, currencySymbol, onDownloadPdf, downloadPendin
 
 const InvoicesWidget = () => {
 	const [searchQuery, setSearchQuery] = useState('');
+	const { config } = usePortalConfig();
+	const hasTheme = !!config.theme;
 
 	const {
 		data: invoicesData,
@@ -121,7 +135,9 @@ const InvoicesWidget = () => {
 		return (
 			<div className='space-y-6'>
 				<div className='h-10 bg-zinc-100 animate-pulse rounded-md'></div>
-				<Card className='bg-white border border-[#E9E9E9] rounded-xl p-4'>
+				<Card
+					className='rounded-xl p-4'
+					style={{ backgroundColor: 'var(--portal-surface, white)', border: '1px solid var(--portal-border, #E9E9E9)' }}>
 					<div className='animate-pulse space-y-3'>
 						{[1, 2, 3, 4].map((i) => (
 							<div key={i} className='h-12 bg-zinc-100 rounded'></div>
@@ -137,7 +153,9 @@ const InvoicesWidget = () => {
 
 	if (invoices.length === 0) {
 		return (
-			<Card className='bg-white border border-[#E9E9E9] rounded-xl p-6'>
+			<Card
+				className='rounded-xl p-6'
+				style={{ backgroundColor: 'var(--portal-surface, white)', border: '1px solid var(--portal-border, #E9E9E9)' }}>
 				<EmptyState title='No invoices' description='No invoices have been generated yet' />
 			</Card>
 		);
@@ -145,22 +163,35 @@ const InvoicesWidget = () => {
 
 	return (
 		<div className='space-y-6'>
+			{/* Search — styled to match portal surface when themed */}
 			<div className='relative'>
-				<Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400' />
-				<Input
+				<Search
+					className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4'
+					style={{ color: 'var(--portal-text-secondary, #a1a1aa)' }}
+				/>
+				<input
+					type='text'
 					placeholder='Search invoices...'
 					value={searchQuery}
 					onChange={(e) => setSearchQuery(e.target.value)}
-					className='pl-10 bg-white border-[#E9E9E9]'
+					className='w-full pl-10 pr-4 py-2.5 text-sm rounded-lg outline-none focus:ring-1 transition-colors'
+					style={{
+						backgroundColor: 'var(--portal-surface, white)',
+						border: '1px solid var(--portal-border, #E9E9E9)',
+						color: 'var(--portal-text-primary, #09090b)',
+					}}
 				/>
 			</div>
 
-			<Card className='bg-white border border-[#E9E9E9] rounded-xl overflow-hidden'>
+			<Card
+				className='rounded-xl overflow-hidden'
+				style={{ backgroundColor: 'var(--portal-surface, white)', border: '1px solid var(--portal-border, #E9E9E9)' }}>
 				<InvoicesTable
 					invoices={filteredInvoices}
 					currencySymbol={currencySymbol}
 					onDownloadPdf={handleDownloadPdf}
 					downloadPendingId={isDownloading ? (downloadInvoiceId ?? null) : null}
+					hasTheme={hasTheme}
 				/>
 			</Card>
 		</div>

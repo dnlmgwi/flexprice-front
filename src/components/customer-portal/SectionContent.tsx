@@ -7,7 +7,9 @@ import { SectionConfig, TabConfig, DatePreset, UsageGraphConfig } from '@/types/
 import { DashboardAnalyticsRequest } from '@/types';
 import { WindowSize } from '@/models';
 import { DatePicker } from '@/components/atoms';
+import { usePortalConfig } from '@/context/PortalConfigContext';
 import TabRenderer from './TabRenderer';
+import { cn } from '@/lib/utils';
 
 interface SectionContentProps {
 	section: SectionConfig;
@@ -64,6 +66,7 @@ interface SectionDateFilterProps {
 	/** Effective range to show in date pickers (preset range or custom); keeps pickers in sync with preset */
 	effectiveStart: string;
 	effectiveEnd: string;
+	hasTheme: boolean;
 	onPresetClick: (preset: DatePreset) => void;
 	onCustomStartChange: (val: string) => void;
 	onCustomEndChange: (val: string) => void;
@@ -75,23 +78,41 @@ const SectionDateFilter = ({
 	useCustom,
 	effectiveStart,
 	effectiveEnd,
+	hasTheme,
 	onPresetClick,
 	onCustomStartChange,
 	onCustomEndChange,
 }: SectionDateFilterProps) => (
 	<div className='flex items-center gap-2 flex-wrap mb-6'>
 		{/* Preset Buttons */}
-		<div className='flex items-center gap-1 bg-white border border-[#E9E9E9] rounded-lg p-1'>
-			{usageGraphConfig.date_presets.map((preset) => (
-				<button
-					key={preset}
-					onClick={() => onPresetClick(preset)}
-					className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-						!useCustom && selectedPreset === preset ? 'bg-zinc-100 text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
-					}`}>
-					{DATE_PRESET_LABELS[preset]}
-				</button>
-			))}
+		<div
+			className='flex items-center gap-1 rounded-lg p-1'
+			style={
+				hasTheme
+					? { backgroundColor: 'var(--portal-surface)', border: '1px solid var(--portal-border)' }
+					: { backgroundColor: 'white', border: '1px solid #E9E9E9' }
+			}>
+			{usageGraphConfig.date_presets.map((preset) => {
+				const isActive = !useCustom && selectedPreset === preset;
+				return (
+					<button
+						key={preset}
+						onClick={() => onPresetClick(preset)}
+						className={cn(
+							'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+							!hasTheme && (isActive ? 'bg-zinc-100 text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'),
+						)}
+						style={
+							hasTheme
+								? isActive
+									? { backgroundColor: 'var(--portal-primary)', color: 'white' }
+									: { color: 'var(--portal-text-secondary, #71717a)' }
+								: undefined
+						}>
+						{DATE_PRESET_LABELS[preset]}
+					</button>
+				);
+			})}
 		</div>
 		{/* Custom Date Range — two separate date pickers */}
 		{usageGraphConfig.allow_custom_date_range && (
@@ -100,15 +121,15 @@ const SectionDateFilter = ({
 					date={effectiveStart ? new Date(effectiveStart) : undefined}
 					setDate={(d) => onCustomStartChange(d ? startOfDay(d).toISOString() : '')}
 					placeholder='Start date'
-					className='w-[130px] h-9 text-xs bg-white'
-					popoverTriggerClassName='[&_button]:h-9 [&_button]:text-xs [&_button]:rounded-md'
+					className={`w-[130px] h-9 text-xs ${hasTheme ? '' : 'bg-white'}`}
+					popoverTriggerClassName={`[&_button]:h-9 [&_button]:text-xs [&_button]:rounded-md${hasTheme ? ' [&_button]:bg-[var(--portal-surface)] [&_button]:border-[var(--portal-border)] [&_button]:text-[var(--portal-text-primary)]' : ''}`}
 				/>
 				<DatePicker
 					date={effectiveEnd ? new Date(effectiveEnd) : undefined}
 					setDate={(d) => onCustomEndChange(d ? endOfDay(d).toISOString() : '')}
 					placeholder='End date'
-					className='w-[130px] h-9 text-xs bg-white'
-					popoverTriggerClassName='[&_button]:h-9 [&_button]:text-xs [&_button]:rounded-md'
+					className={`w-[130px] h-9 text-xs ${hasTheme ? '' : 'bg-white'}`}
+					popoverTriggerClassName={`[&_button]:h-9 [&_button]:text-xs [&_button]:rounded-md${hasTheme ? ' [&_button]:bg-[var(--portal-surface)] [&_button]:border-[var(--portal-border)] [&_button]:text-[var(--portal-text-primary)]' : ''}`}
 				/>
 			</div>
 		)}
@@ -126,6 +147,8 @@ const SectionDateFilter = ({
  * across all those widgets via a common analyticsParams object.
  */
 const SectionContent = ({ section }: SectionContentProps) => {
+	const { config } = usePortalConfig();
+	const hasTheme = !!config.theme;
 	const enabledTabs = useMemo(() => [...section.tabs.filter((t) => t.enabled)].sort((a, b) => a.order - b.order), [section.tabs]);
 
 	// ── Shared date filter state (hoisted to section level) ──────────────────
@@ -204,6 +227,7 @@ const SectionContent = ({ section }: SectionContentProps) => {
 					useCustom={useCustom}
 					effectiveStart={effectiveRange.start_time}
 					effectiveEnd={effectiveRange.end_time}
+					hasTheme={hasTheme}
 					onPresetClick={handlePresetClick}
 					onCustomStartChange={handleCustomStart}
 					onCustomEndChange={handleCustomEnd}

@@ -8,10 +8,20 @@
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 
+/**
+ * Optional per-tenant theme. When absent the portal uses its default light-mode appearance.
+ *
+ * CSS variables injected:
+ *   --portal-primary  → buttons, active tabs, accent
+ *   --portal-bg       → page background
+ *   --portal-surface  → card / panel backgrounds
+ *   --portal-border   → card and table borders
+ */
 export interface PortalTheme {
 	primary_color: string; // CSS var --portal-primary
-	secondary_color: string; // CSS var --portal-secondary
-	tertiary_color: string; // CSS var --portal-tertiary
+	background_color: string; // CSS var --portal-bg
+	surface_color: string; // CSS var --portal-surface
+	border_color: string; // CSS var --portal-border
 	logo_url?: string;
 	font_family?: string;
 }
@@ -93,7 +103,8 @@ export interface SectionConfig {
 
 export interface PortalConfig {
 	version: string;
-	theme: PortalTheme;
+	/** Optional — when absent the portal renders with its default light-mode appearance */
+	theme?: PortalTheme;
 	sections: SectionConfig[];
 }
 
@@ -101,11 +112,7 @@ export interface PortalConfig {
 
 export const DEFAULT_PORTAL_CONFIG: PortalConfig = {
 	version: '1.0',
-	theme: {
-		primary_color: '#6167d9',
-		secondary_color: '#2563eb',
-		tertiary_color: '#e0e7ff',
-	},
+	// No default theme — portals without a tenant theme use hardcoded light-mode styles
 	sections: [
 		{
 			id: 'usage',
@@ -174,13 +181,19 @@ export const DEFAULT_PORTAL_CONFIG: PortalConfig = {
  * Arrays (sections, tabs) from tenantConfig fully replace defaults if present —
  * this gives tenants full control over ordering and content.
  */
+/** Returns true only if a theme object has at least one non-empty string value. */
+function hasThemeValues(theme?: Partial<PortalTheme>): boolean {
+	if (!theme) return false;
+	return Object.values(theme).some((v) => typeof v === 'string' && v.length > 0);
+}
+
 export function deepMergePortalConfig(defaults: PortalConfig, tenant: Partial<PortalConfig>): PortalConfig {
+	const mergedTheme = { ...(defaults.theme ?? {}), ...(tenant.theme ?? {}) } as PortalTheme;
 	return {
 		version: tenant.version ?? defaults.version,
-		theme: {
-			...defaults.theme,
-			...tenant.theme,
-		},
+		// Only set theme if the merged result actually has at least one value.
+		// An empty {} from the backend must NOT override the light-mode defaults.
+		theme: hasThemeValues(mergedTheme) ? mergedTheme : undefined,
 		// Sections from tenant fully replace defaults if provided (they control order + content)
 		sections: tenant.sections && tenant.sections.length > 0 ? tenant.sections : defaults.sections,
 	};
