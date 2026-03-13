@@ -108,6 +108,7 @@ const SubscriptionTable: FC<SubscriptionTableProps> = ({ data, onRowClick, allow
 				onRowClick?.(row);
 			}}
 			columns={columns}
+			showEmptyRow
 			data={data}
 			variant='no-bordered'
 		/>
