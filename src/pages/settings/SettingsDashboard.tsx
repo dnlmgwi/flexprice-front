@@ -272,7 +272,7 @@ function MembersSection() {
 					{addedUserEmail && (
 						<div>
 							<span className='text-xs font-medium text-zinc-500 uppercase tracking-wide'>Email</span>
-							<div className='mt-1 flex items-center gap-2 rounded-md border border-gray-200 bg-zinc-50 px-3 py-2'>
+							<div className='mt-1 flex items-center gap-2 rounded-md border border-gray-200 bg-zinc-50 px-3 py-2 min-h-[40px]'>
 								<Mail className='h-4 w-4 text-zinc-400 flex-shrink-0' />
 								<span className='flex-1 min-w-0 truncate text-sm text-zinc-900'>{addedUserEmail}</span>
 								<button
@@ -293,14 +293,14 @@ function MembersSection() {
 					{/* Password row */}
 					<div>
 						<span className='text-xs font-medium text-zinc-500 uppercase tracking-wide'>Password</span>
-						<div className='mt-1 relative flex items-center rounded-md border border-gray-200 bg-zinc-50'>
-							<Lock className='h-4 w-4 text-zinc-400 flex-shrink-0 ml-3' />
+						<div className='mt-1 relative flex items-center rounded-md border border-gray-200 bg-zinc-50 px-3 py-2 min-h-[40px]'>
+							<Lock className='h-4 w-4 text-zinc-400 flex-shrink-0' />
 							<Input
 								id='temp-password'
 								readOnly
 								type={showPassword ? 'text' : 'password'}
 								value={oneTimePassword ?? ''}
-								className='flex-1 border-0 bg-transparent font-mono text-sm text-zinc-900 py-2 pl-2 pr-24 focus-visible:ring-0'
+								className='flex-1 border-0 bg-transparent font-mono text-sm text-zinc-900 py-0 pl-2 pr-24 focus-visible:ring-0 min-h-[24px]'
 							/>
 							<div className='absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5'>
 								<button
