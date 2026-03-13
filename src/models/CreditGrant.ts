@@ -25,6 +25,8 @@ export interface CreditGrant extends BaseModel {
 	readonly start_date?: string;
 	/** ISO date string. Optional end date for the grant. */
 	readonly end_date?: string;
+	/** ISO date string. Anchor date for recurring credit grant applications. */
+	readonly credit_grant_anchor?: string;
 }
 
 export enum CREDIT_GRANT_CADENCE {

@@ -7,24 +7,45 @@ export interface GetInvoicesResponse {
 	pagination: Pagination;
 }
 
-export interface GetAllInvoicesPayload {
-	customer_id?: string;
-	end_time?: string;
-	invoice_status?: string;
-	invoice_type?: string;
+/**
+ * Filter for listing/searching invoices. Matches backend InvoiceFilter.
+ * Used for both GET /invoices (query params) and POST /invoices/search (body).
+ */
+export interface InvoiceFilter {
+	// Query/pagination (GET uses sort_field + order; POST uses sort array)
 	limit?: number;
 	offset?: number;
+	sort_field?: string;
 	order?: string;
-	payment_status?: string;
-	start_time?: string;
-	sort?: string;
 	status?: string;
+	expand?: string;
+	// Time range
+	start_time?: string;
+	end_time?: string;
+	// Generic filters (POST search uses arrays)
+	filters?: TypedBackendFilter[];
+	sort?: TypedBackendSort[];
+	// Dedicated filter fields
+	invoice_ids?: string[];
+	customer_id?: string;
+	external_customer_id?: string;
 	subscription_id?: string;
+	invoice_type?: string;
+	invoice_status?: string[];
+	payment_status?: string[];
+	amount_due_gt?: number;
+	amount_remaining_gt?: number;
+	period_start_gte?: string;
+	period_start_lte?: string;
+	period_end_gte?: string;
+	period_end_lte?: string;
+	skip_line_items?: boolean;
 }
 
-export interface GetInvoicesByFiltersPayload extends Pagination {
-	filters: TypedBackendFilter[];
-	sort: TypedBackendSort[];
+/** Request body for PUT /invoices/:id/payment (update payment status). */
+export interface UpdatePaymentStatusPayload {
+	payment_status: string;
+	amount?: number;
 }
 
 export interface UpdateInvoiceStatusPayload {

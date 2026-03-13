@@ -1,4 +1,3 @@
-import { ENTITY_STATUS } from '@/models';
 import {
 	Entitlement,
 	ENTITLEMENT_ENTITY_TYPE,
@@ -9,22 +8,33 @@ import {
 	Feature,
 	FEATURE_TYPE,
 } from '@/models';
+import { QueryFilter, TimeRangeFilter } from './base';
+import { TypedBackendFilter, TypedBackendSort } from '@/types/formatters/QueryBuilder';
 
-export interface EntitlementFilters {
-	end_time?: string;
-	expand?: string;
+// ============================================
+// Entitlement Filter Types (matches backend structure)
+// ============================================
+
+export interface EntitlementFilter extends Omit<QueryFilter, 'sort'>, TimeRangeFilter {
+	// Complex filtering support (matches backend Filters field)
+	filters?: TypedBackendFilter[];
+	sort?: TypedBackendSort[];
+
+	// Entity-specific filters (matches backend)
+	entity_type?: ENTITLEMENT_ENTITY_TYPE;
+	entity_ids?: string[];
 	feature_ids?: string[];
 	feature_type?: FEATURE_TYPE;
 	is_enabled?: boolean;
-	limit?: number;
-	offset?: number;
-	order?: 'asc' | 'desc';
-	entity_type?: ENTITLEMENT_ENTITY_TYPE;
-	entity_ids?: string[];
-	sort?: string;
-	start_time?: string;
-	status?: ENTITY_STATUS;
+	plan_ids?: string[];
 }
+
+// Legacy alias for backward compatibility
+export type EntitlementFilters = EntitlementFilter;
+
+// ============================================
+// Entitlement Response Types
+// ============================================
 
 export interface EntitlementResponse extends Entitlement {
 	feature: Feature;
@@ -32,10 +42,14 @@ export interface EntitlementResponse extends Entitlement {
 	addon?: Addon;
 }
 
-export interface EntitlementResponse {
+export interface ListEntitlementsResponse {
 	items: EntitlementResponse[];
 	pagination: Pagination;
 }
+
+// ============================================
+// Entitlement Request Types
+// ============================================
 
 export interface CreateEntitlementRequest {
 	plan_id?: string;
@@ -48,14 +62,6 @@ export interface CreateEntitlementRequest {
 	static_value?: string;
 	entity_type: ENTITLEMENT_ENTITY_TYPE;
 	entity_id: string;
-}
-
-export interface CreateBulkEntitlementRequest {
-	items: CreateEntitlementRequest[];
-}
-
-export interface CreateBulkEntitlementResponse {
-	items: EntitlementResponse[];
 }
 
 export interface UpdateEntitlementRequest {
@@ -71,7 +77,10 @@ export interface UpdateEntitlementRequest {
 	entity_id?: string;
 }
 
-export interface ListEntitlementsResponse {
+export interface CreateBulkEntitlementRequest {
+	items: CreateEntitlementRequest[];
+}
+
+export interface CreateBulkEntitlementResponse {
 	items: EntitlementResponse[];
-	pagination: Pagination;
 }

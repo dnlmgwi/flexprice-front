@@ -11,7 +11,7 @@ export interface Props {
 	data: Invoice[];
 }
 
-const getStatusChip = (status: string) => {
+export const getStatusChip = (status: string) => {
 	switch (status.toUpperCase()) {
 		case INVOICE_STATUS.VOIDED:
 			return <Chip variant='default' label='Void' />;
@@ -60,13 +60,13 @@ const InvoiceTable: FC<Props> = ({ data }) => {
 			render: (row: Invoice) => getStatusChip(row.invoice_status),
 		},
 		{
-			title: 'Customer Slug',
+			title: 'Customer',
 			render: (row: Invoice) => {
-				if (!row.customer?.external_id) {
+				if (!row.customer?.name || !row.customer?.id) {
 					return '--';
 				}
 
-				return <RedirectCell redirectUrl={`${RouteNames.customers}/${row.customer?.id}`}>{row.customer?.external_id}</RedirectCell>;
+				return <RedirectCell redirectUrl={`${RouteNames.customers}/${row.customer.id}`}>{row.customer.name}</RedirectCell>;
 			},
 		},
 		// {

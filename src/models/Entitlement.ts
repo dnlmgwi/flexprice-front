@@ -29,4 +29,10 @@ export interface Entitlement extends BaseModel {
 	readonly tenant_id: string;
 	readonly usage_limit: number | null;
 	readonly usage_reset_period: ENTITLEMENT_USAGE_RESET_PERIOD | null;
+	readonly display_order?: number;
+	readonly parent_entitlement_id?: string;
+	/** ISO date string. Optional start date for the entitlement. */
+	readonly start_date?: string;
+	/** ISO date string. Optional end date for the entitlement. */
+	readonly end_date?: string;
 }

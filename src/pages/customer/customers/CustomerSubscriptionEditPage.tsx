@@ -71,7 +71,7 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 	const { data: creditGrants } = useQuery({
 		queryKey: ['creditGrantsEditPage', subscriptionId],
 		queryFn: async () => {
-			return await CreditGrantApi.List({
+			return await CreditGrantApi.list({
 				subscription_ids: [subscriptionId!],
 				status: ENTITY_STATUS.PUBLISHED,
 			});
@@ -144,7 +144,7 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 
 	const { mutate: createCreditGrant } = useMutation({
 		mutationFn: async (data: any) => {
-			return await CreditGrantApi.Create(data);
+			return await CreditGrantApi.create(data);
 		},
 		onSuccess: () => {
 			toast.success('Credit grant created successfully');
@@ -160,7 +160,7 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 	const { mutate: deleteCreditGrant } = useMutation({
 		mutationFn: async ({ creditGrantId, effectiveDate }: { creditGrantId: string; effectiveDate: string }) => {
 			const deleteRequest: { effective_date?: string } = effectiveDate ? { effective_date: effectiveDate } : {};
-			return await CreditGrantApi.Delete(creditGrantId, deleteRequest);
+			return await CreditGrantApi.delete(creditGrantId, deleteRequest);
 		},
 		onSuccess: () => {
 			toast.success('Credit grant deleted successfully');
@@ -243,7 +243,8 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 
 	const handleAddChargeSave = useCallback(
 		(item: AddedSubscriptionLineItem) => {
-			const { tempId: _tempId, ...request } = item;
+			const { tempId, ...request } = item;
+			void tempId; // omitted from API request
 			createLineItem(request as CreateSubscriptionLineItemRequest);
 		},
 		[createLineItem],

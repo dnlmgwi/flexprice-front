@@ -45,7 +45,7 @@ const SubscriptionEntitlementsSection: FC<SubscriptionEntitlementsSectionProps> 
 	// Delete entitlement mutation
 	const { mutate: deleteEntitlement, isPending: isDeletingEntitlement } = useMutation({
 		mutationFn: async (entitlementId: string) => {
-			return await EntitlementApi.deleteEntitlementById(entitlementId);
+			return await EntitlementApi.delete(entitlementId);
 		},
 		onSuccess: () => {
 			toast.success('Entitlement deleted successfully');

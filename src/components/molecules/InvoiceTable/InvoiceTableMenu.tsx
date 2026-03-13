@@ -28,6 +28,7 @@ const InvoiceTableMenu: FC<Props> = ({ data }) => {
 			toast.success('Communication triggered');
 			refetchQueries(['fetchInvoice', data.id]);
 			refetchQueries(['fetchInvoices']);
+			refetchQueries(['invoice', data.customer_id]);
 		},
 		onError: (error: ServerError) => {
 			toast.error(error.error.message || 'Unable to trigger communication');
@@ -54,6 +55,7 @@ const InvoiceTableMenu: FC<Props> = ({ data }) => {
 			toast.success('Invoice recalculation has been triggered. The replacement invoice will be available once the process completes.');
 			refetchQueries(['fetchInvoice', data.id]);
 			refetchQueries(['fetchInvoices']);
+			refetchQueries(['invoice', data.customer_id]);
 		},
 		onError: (error: ServerError) => {
 			toast.error(error.error.message || 'Unable to recalculate invoice');
@@ -160,6 +162,7 @@ const InvoiceTableMenu: FC<Props> = ({ data }) => {
 		refetchQueries(['fetchInvoice', data.id]);
 		refetchQueries(['payments', data.id]);
 		refetchQueries(['fetchInvoices']);
+		refetchQueries(['invoice', data.customer_id]);
 	};
 	return (
 		<div>

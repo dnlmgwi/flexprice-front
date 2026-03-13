@@ -35,7 +35,7 @@ import Customer from '@/models/Customer';
 export { BILLING_PERIOD } from '@/constants/constants';
 
 // SubscriptionFilter interface for listing subscriptions
-export interface ListSubscriptionsPayload extends QueryFilter, TimeRangeFilter {
+export interface ListSubscriptionsPayload extends Omit<QueryFilter, 'sort'>, TimeRangeFilter {
 	subscription_ids?: string[];
 	customer_id?: string;
 	external_customer_id?: string;
@@ -211,7 +211,7 @@ export interface ScheduleUpdateBillingPeriodRequest {
 	billing_period_end: string;
 }
 
-export interface ListSubscriptionsResponse extends QueryFilter, TimeRangeFilter {
+export interface ListSubscriptionsResponse extends Omit<QueryFilter, 'sort'>, TimeRangeFilter {
 	items: SubscriptionResponse[];
 	pagination: Pagination;
 	sort: TypedBackendSort[];
@@ -606,7 +606,7 @@ export interface SubscriptionLineItemResponse {
 // ENHANCED SUBSCRIPTION FILTER TYPES
 // =============================================================================
 
-export interface SubscriptionFilter extends QueryFilter, TimeRangeFilter {
+export interface SubscriptionFilter extends Omit<QueryFilter, 'sort'>, TimeRangeFilter {
 	subscription_ids?: string[];
 	customer_id?: string;
 	external_customer_id?: string;

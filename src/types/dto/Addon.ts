@@ -62,7 +62,7 @@ export interface GetAddonByFilterPayload extends Pagination {
 	sort: TypedBackendSort[];
 }
 
-export interface AddonFilter extends QueryFilter, TimeRangeFilter {
+export interface AddonFilter extends Omit<QueryFilter, 'sort'>, TimeRangeFilter {
 	filters?: FilterCondition[];
 	sort?: SortOption[];
 	addon_ids?: string[];

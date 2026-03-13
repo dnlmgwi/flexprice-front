@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Button, Card, CardHeader, NoDataCard, Loader } from '@/components/atoms';
 import { Plus } from 'lucide-react';
-import { PlanApi, EntitlementApi } from '@/api';
+import { EntitlementApi } from '@/api';
 import { FlexpriceTable, ColumnData, RedirectCell, AddEntitlementDrawer } from '@/components/molecules';
 import { getFeatureTypeChips } from '@/components/molecules/CustomerUsageTable/CustomerUsageTable';
 import { formatAmount } from '@/components/atoms/Input/Input';
@@ -51,7 +51,10 @@ const PlanEntitlementsTab = () => {
 	} = useQuery({
 		queryKey: ['planEntitlements', planId],
 		queryFn: async () => {
-			return await PlanApi.getPlanEntitlements(planId!);
+			return await EntitlementApi.search({
+				entity_ids: [planId!],
+				entity_type: ENTITLEMENT_ENTITY_TYPE.PLAN,
+			});
 		},
 		enabled: !!planId,
 	});
@@ -84,7 +87,7 @@ const PlanEntitlementsTab = () => {
 					<ActionButton
 						id={row?.id}
 						deleteMutationFn={async () => {
-							return await EntitlementApi.deleteEntitlementById(row?.id);
+							return await EntitlementApi.delete(row?.id);
 						}}
 						refetchQueryKey='planEntitlements'
 						entityName={row?.feature?.name}

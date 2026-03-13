@@ -111,7 +111,7 @@ const FeatureDetails = () => {
 	const { data: linkedEntitlements } = useQuery({
 		queryKey: ['fetchLinkedEntitlements', featureId],
 		queryFn: async () =>
-			await EntitlementApi.getAllEntitlements({
+			await EntitlementApi.list({
 				feature_ids: [featureId!],
 				expand: 'plans,features,prices',
 				status: ENTITY_STATUS.PUBLISHED,

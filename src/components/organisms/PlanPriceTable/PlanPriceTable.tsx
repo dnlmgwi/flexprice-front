@@ -9,7 +9,7 @@ import {
 	UpdatePriceDetailsDrawer,
 	QueryBuilder,
 } from '@/components/molecules';
-import { Price, Plan, PRICE_STATUS } from '@/models';
+import { Price, Plan, PRICE_STATUS, PRICE_ENTITY_TYPE } from '@/models';
 import { PriceUnit } from '@/models/PriceUnit';
 import { Plus, Trash2, Pencil, FileText } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -304,8 +304,6 @@ const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 		setSelectedPriceForTermination(null);
 	}, []);
 
-	const hasPrices = (plan.prices?.length ?? 0) > 0;
-
 	// ===== FILTER & SORT =====
 	const initialFilters = useMemo<FilterCondition[]>(
 		() => [
@@ -349,14 +347,14 @@ const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 		queryFn: () =>
 			PriceApi.searchPrices({
 				entity_ids: [plan.id],
-				entity_type: 'PLAN',
+				entity_type: PRICE_ENTITY_TYPE.PLAN,
 				filters: searchFilters.length > 0 ? searchFilters : undefined,
 				sorts: searchSorts.length > 0 ? searchSorts : undefined,
 				allow_expired_prices: true,
 				limit,
 				offset,
 			}),
-		enabled: !!plan.id && hasPrices,
+		enabled: !!plan.id, // Only fetch if prices not provided externally
 	});
 
 	const resetPageRef = React.useRef(resetPage);
@@ -366,7 +364,7 @@ const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 	}, [searchFiltersSignature]);
 
 	// Use search API response directly (no client-side filter/sort)
-	const tableItems = searchData?.items ?? [];
+	const tableItems = searchData?.items || [];
 	const totalFromSearch = searchData?.pagination?.total ?? 0;
 	const totalItems = totalFromSearch || Math.max(offset + tableItems.length, limit * page);
 
@@ -472,7 +470,7 @@ const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 			)}
 
 			{/* Charges Table */}
-			{hasPrices ? (
+			{(searchData?.items?.length ?? 0) > 0 ? (
 				<Card variant='notched'>
 					<CardHeader
 						title='Charges'

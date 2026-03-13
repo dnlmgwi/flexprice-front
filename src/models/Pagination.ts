@@ -1,5 +1,5 @@
 export interface Pagination {
 	offset?: number;
-	limit?: number;
+	limit?: number | null;
 	total?: number;
 }

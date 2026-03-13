@@ -36,7 +36,10 @@ const CustomerInvoiceDetail: FC<Props> = ({ invoice_id, breadcrumb_index }) => {
 	const { data, isLoading, isError } = useQuery({
 		queryKey: ['fetchInvoice', invoice_id],
 		queryFn: async () => {
-			return await InvoiceApi.getInvoiceById(invoice_id!);
+			const response = await InvoiceApi.listInvoices({ invoice_ids: [invoice_id!] });
+			const invoice = response.items[0];
+			if (!invoice) throw new Error('Invoice not found');
+			return invoice;
 		},
 		enabled: !!invoice_id,
 	});

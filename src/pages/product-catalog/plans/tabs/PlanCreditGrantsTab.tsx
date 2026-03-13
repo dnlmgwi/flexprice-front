@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button, Card, CardHeader, NoDataCard, Loader } from '@/components/atoms';
 import { Plus } from 'lucide-react';
 import { uniqueId } from 'lodash';
-import { PlanApi, CreditGrantApi } from '@/api';
+import CreditGrantApi from '@/api/CreditGrantApi';
 import { CreditGrantsTable, CreditGrantModal } from '@/components/molecules';
 import { refetchQueries } from '@/core/services/tanstack/ReactQueryProvider';
 import toast from 'react-hot-toast';
@@ -29,7 +29,9 @@ const PlanCreditGrantsTab = () => {
 	} = useQuery({
 		queryKey: ['planCreditGrants', planId],
 		queryFn: async () => {
-			return await PlanApi.getPlanCreditGrants(planId!);
+			return await CreditGrantApi.list({
+				plan_ids: [planId!],
+			});
 		},
 		enabled: !!planId,
 	});
@@ -40,7 +42,7 @@ const PlanCreditGrantsTab = () => {
 				...data,
 				plan_id: planId!,
 			};
-			return await CreditGrantApi.Create(grantWithPlanId);
+			return await CreditGrantApi.create(grantWithPlanId);
 		},
 		onSuccess: () => {
 			toast.success('Credit grant added successfully');

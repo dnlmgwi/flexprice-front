@@ -1,7 +1,7 @@
 import { AxiosClient } from '@/core/axios/verbs';
 import { generateQueryParams } from '@/utils/common/api_helper';
 import {
-	EntitlementFilters,
+	EntitlementFilter,
 	EntitlementResponse,
 	CreateEntitlementRequest,
 	CreateBulkEntitlementRequest,
@@ -18,7 +18,7 @@ class EntitlementApi {
 	 * @param data - Entitlement configuration
 	 * @returns Promise<EntitlementResponse>
 	 */
-	public static async createEntitlement(data: CreateEntitlementRequest) {
+	public static async create(data: CreateEntitlementRequest) {
 		return await AxiosClient.post<EntitlementResponse>(this.baseUrl, data);
 	}
 
@@ -27,7 +27,7 @@ class EntitlementApi {
 	 * @param data - Bulk entitlement configuration
 	 * @returns Promise<CreateBulkEntitlementResponse>
 	 */
-	public static async createBulkEntitlement(data: CreateBulkEntitlementRequest) {
+	public static async createBulk(data: CreateBulkEntitlementRequest) {
 		return await AxiosClient.post<CreateBulkEntitlementResponse>(`${this.baseUrl}/bulk`, data);
 	}
 
@@ -36,18 +36,27 @@ class EntitlementApi {
 	 * @param id - Entitlement ID
 	 * @returns Promise<EntitlementResponse>
 	 */
-	public static async getEntitlementById(id: string) {
+	public static async get(id: string) {
 		return await AxiosClient.get<EntitlementResponse>(`${this.baseUrl}/${id}`);
 	}
 
 	/**
-	 * Get entitlements with filters (GET method)
+	 * List entitlements with filters (GET method with query params)
 	 * @param filters - Filter parameters
 	 * @returns Promise<ListEntitlementsResponse>
 	 */
-	public static async listEntitlements(filters: EntitlementFilters) {
+	public static async list(filters: EntitlementFilter) {
 		const url = generateQueryParams(this.baseUrl, filters);
 		return await AxiosClient.get<ListEntitlementsResponse>(url);
+	}
+
+	/**
+	 * Search entitlements with complex filters (POST /entitlements/search)
+	 * @param filters - Complex filters, sorts, and pagination
+	 * @returns Promise<ListEntitlementsResponse>
+	 */
+	public static async search(filters: EntitlementFilter) {
+		return await AxiosClient.post<ListEntitlementsResponse>(`${this.baseUrl}/search`, filters);
 	}
 
 	/**
@@ -56,7 +65,7 @@ class EntitlementApi {
 	 * @param data - Updated entitlement configuration
 	 * @returns Promise<EntitlementResponse>
 	 */
-	public static async updateEntitlement(id: string, data: UpdateEntitlementRequest) {
+	public static async update(id: string, data: UpdateEntitlementRequest) {
 		return await AxiosClient.put<EntitlementResponse>(`${this.baseUrl}/${id}`, data);
 	}
 
@@ -65,39 +74,8 @@ class EntitlementApi {
 	 * @param id - Entitlement ID
 	 * @returns Promise<void>
 	 */
-	public static async deleteEntitlement(id: string) {
+	public static async delete(id: string) {
 		return await AxiosClient.delete<void>(`${this.baseUrl}/${id}`);
-	}
-
-	/**
-	 * List entitlements by filter (POST method for complex filters)
-	 * @param filters - Filter parameters
-	 * @returns Promise<ListEntitlementsResponse>
-	 */
-	public static async listEntitlementsByFilter(filters: EntitlementFilters) {
-		return await AxiosClient.post<ListEntitlementsResponse>(`${this.baseUrl}/search`, filters);
-	}
-
-	// Legacy methods for backward compatibility
-	/**
-	 * @deprecated Use listEntitlements instead
-	 */
-	public static async getAllEntitlements(filters: EntitlementFilters) {
-		return this.listEntitlements(filters);
-	}
-
-	/**
-	 * @deprecated Use deleteEntitlement instead
-	 */
-	public static async deleteEntitlementById(id: string) {
-		return this.deleteEntitlement(id);
-	}
-
-	/**
-	 * @deprecated Use createBulkEntitlement instead
-	 */
-	public static async CreateBulkEntitlement(data: CreateBulkEntitlementRequest) {
-		return this.createBulkEntitlement(data);
 	}
 }
 
