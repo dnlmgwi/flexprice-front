@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Page, AddButton, Card, CardHeader, Loader, Button, Input, Label, ShortPagination, Dialog } from '@/components/atoms';
+import { Page, AddButton, Card, CardHeader, Loader, Button, Input, ShortPagination, Dialog } from '@/components/atoms';
 import { FlatTabs, FlexpriceTable } from '@/components/molecules';
 import { UserApi } from '@/api/UserApi';
 import { User } from '@/models';
@@ -213,38 +213,50 @@ function MembersSection() {
 				)}
 			</Card>
 
-			{/* Add member dialog */}
+			{/* Add member dialog – premium minimal */}
 			<Dialog
 				isOpen={addOpen}
 				onOpenChange={handleAddDialogOpenChange}
 				title='Add member'
+				description='Invite a new team member by email.'
+				titleClassName='text-lg font-semibold text-zinc-900'
+				descriptionClassName='text-sm text-zinc-500'
 				className='sm:max-w-[425px] rounded-xl shadow-lg border border-gray-100'>
-				<div className='grid gap-4 mt-3'>
+				<div className='space-y-3 mt-3'>
 					{addError && (
-						<div className='w-full flex items-center gap-2.5 rounded-md border border-red-200 bg-red-50 px-3 py-2.5' role='alert'>
+						<div className='w-full flex items-center gap-2.5 rounded-md border border-red-200 bg-red-50 px-3 py-2' role='alert'>
 							<AlertTriangle className='h-4 w-4 flex-shrink-0 text-red-600' />
 							<span className='text-sm font-medium text-red-700 leading-relaxed'>{addError}</span>
 						</div>
 					)}
-					<div className='grid gap-2'>
-						<Label label='Email' htmlFor='member-email' />
-						<Input
-							id='member-email'
-							type='email'
-							placeholder='user@example.com'
-							value={email}
-							onChange={(value) => setEmail(value)}
-							onKeyDown={(e) => {
-								if (e.key === 'Enter') {
-									e.preventDefault();
-									handleAddUser();
-								}
-							}}
-						/>
+					<div>
+						<label htmlFor='member-email' className='block text-xs font-medium text-zinc-500 uppercase tracking-wide mb-1'>
+							Email
+						</label>
+						<div className='flex items-center gap-2 mb-4 rounded-md border border-gray-200 bg-white'>
+							<Mail className='h-4 w-4 text-zinc-400 flex-shrink-0 ml-3' />
+							<Input
+								id='member-email'
+								type='email'
+								placeholder='user@example.com'
+								value={email}
+								onChange={(value) => setEmail(value)}
+								onKeyDown={(e) => {
+									if (e.key === 'Enter') {
+										e.preventDefault();
+										handleAddUser();
+									}
+								}}
+								autoFocus
+								className='border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0'
+							/>
+						</div>
 					</div>
-					<Button onClick={handleAddUser} disabled={createUser.isPending} isLoading={createUser.isPending}>
-						Add user
-					</Button>
+					<div className='flex justify-end'>
+						<Button onClick={handleAddUser} disabled={createUser.isPending} isLoading={createUser.isPending}>
+							Add user
+						</Button>
+					</div>
 				</div>
 			</Dialog>
 
