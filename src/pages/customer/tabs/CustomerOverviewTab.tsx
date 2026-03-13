@@ -1,10 +1,9 @@
 import { useNavigate, useParams, useOutletContext } from 'react-router';
-import { AddButton, Card, CardHeader, NoDataCard } from '@/components/atoms';
+import { AddButton, Card, CardHeader, NoDataCard, Loader, Spacer, ShortPagination } from '@/components/atoms';
 import CustomerApi from '@/api/CustomerApi';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { SubscriptionTable } from '@/components/organisms';
 import { Subscription, SUBSCRIPTION_STATUS, PRICE_ENTITY_TYPE } from '@/models';
-import { Loader } from '@/components/atoms';
 import toast from 'react-hot-toast';
 import { RouteNames } from '@/core/routes/Routes';
 import CustomerUsageTable from '@/components/molecules/CustomerUsageTable';
@@ -12,25 +11,97 @@ import { UpcomingCreditGrantApplicationsTable } from '@/components/molecules';
 import SubscriptionApi from '@/api/SubscriptionApi';
 import { PriceApi } from '@/api';
 import { useMemo } from 'react';
+import { QueryBuilder } from '@/components/molecules';
+import usePagination, { PAGINATION_PREFIX } from '@/hooks/usePagination';
+import useFilterSortingWithPersistence from '@/hooks/useFilterSortingWithPersistence';
+import { usePaginationReset } from '@/hooks/usePaginationReset';
+import {
+	FilterField,
+	FilterFieldType,
+	DataType,
+	FilterOperator,
+	SortOption,
+	SortDirection,
+	FilterCondition,
+} from '@/types/common/QueryBuilder';
+import { BILLING_CADENCE } from '@/models/Invoice';
+import { BILLING_PERIOD } from '@/constants/constants';
+import { toSentenceCase } from '@/utils/common/helper_functions';
+import { searchPlansForFilter } from '@/utils/filterSearchHelpers';
+import { PlanApi } from '@/api';
 
 type ContextType = {
 	isArchived: boolean;
 };
 
-const fetchAllSubscriptions = async (customerId: string) => {
-	const subs = await SubscriptionApi.searchSubscriptions({
-		customer_id: customerId,
-		limit: 1000,
-		subscription_status: [
-			SUBSCRIPTION_STATUS.ACTIVE,
-			SUBSCRIPTION_STATUS.CANCELLED,
-			SUBSCRIPTION_STATUS.INCOMPLETE,
-			SUBSCRIPTION_STATUS.TRIALING,
-			SUBSCRIPTION_STATUS.DRAFT,
+// Filter options for customer subscriptions (no customer_id - scoped by route)
+const subscriptionFilterOptions: FilterField[] = [
+	{
+		field: 'plan_id',
+		label: 'Plan',
+		fieldType: FilterFieldType.ASYNC_MULTI_SELECT,
+		operators: [FilterOperator.IN, FilterOperator.NOT_IN],
+		dataType: DataType.ARRAY,
+		asyncConfig: {
+			searchFn: searchPlansForFilter,
+		},
+	},
+	{
+		field: 'subscription_status',
+		label: 'Status',
+		fieldType: FilterFieldType.MULTI_SELECT,
+		operators: [FilterOperator.IN, FilterOperator.NOT_IN],
+		dataType: DataType.ARRAY,
+		options: [
+			{ value: SUBSCRIPTION_STATUS.ACTIVE, label: 'Active' },
+			{ value: SUBSCRIPTION_STATUS.CANCELLED, label: 'Cancelled' },
+			{ value: SUBSCRIPTION_STATUS.INCOMPLETE, label: 'Incomplete' },
+			{ value: SUBSCRIPTION_STATUS.TRIALING, label: 'Trialing' },
+			{ value: SUBSCRIPTION_STATUS.DRAFT, label: 'Draft' },
 		],
-	});
-	return subs.items;
-};
+	},
+	{
+		field: 'billing_cadence',
+		label: 'Billing Cadence',
+		fieldType: FilterFieldType.MULTI_SELECT,
+		operators: [FilterOperator.IN],
+		dataType: DataType.ARRAY,
+		options: Object.values(BILLING_CADENCE).map((cadence) => ({
+			value: cadence,
+			label: cadence.charAt(0).toUpperCase() + cadence.slice(1).toLowerCase(),
+		})),
+	},
+	{
+		field: 'billing_period',
+		label: 'Billing Period',
+		fieldType: FilterFieldType.MULTI_SELECT,
+		operators: [FilterOperator.IN],
+		dataType: DataType.ARRAY,
+		options: Object.values(BILLING_PERIOD).map((period) => ({
+			value: period,
+			label: toSentenceCase(period.replace('_', ' ')),
+		})),
+	},
+];
+
+const subscriptionSortOptions: SortOption[] = [
+	{ field: 'created_at', label: 'Created At', direction: SortDirection.DESC },
+	{ field: 'updated_at', label: 'Updated At', direction: SortDirection.DESC },
+	{ field: 'start_date', label: 'Start Date', direction: SortDirection.DESC },
+	{ field: 'end_date', label: 'End Date', direction: SortDirection.DESC },
+];
+
+const initialSubscriptionFilters: FilterCondition[] = [
+	{
+		field: 'subscription_status',
+		operator: FilterOperator.IN,
+		valueArray: [SUBSCRIPTION_STATUS.ACTIVE, SUBSCRIPTION_STATUS.TRIALING],
+		dataType: DataType.ARRAY,
+		id: 'initial-status',
+	},
+];
+
+const initialSubscriptionSorts: SortOption[] = [{ field: 'updated_at', label: 'Updated At', direction: SortDirection.DESC }];
 
 const CustomerOverviewTab = () => {
 	const navigate = useNavigate();
@@ -41,14 +112,99 @@ const CustomerOverviewTab = () => {
 		navigate(`${RouteNames.customers}/${customerId}/add-subscription`);
 	};
 
+	const { filters, sorts, setFilters, setSorts, sanitizedFilters, sanitizedSorts } = useFilterSortingWithPersistence({
+		initialFilters: initialSubscriptionFilters,
+		initialSorts: initialSubscriptionSorts,
+		debounceTime: 300,
+		persistenceKey: 'customerSubscriptions',
+	});
+
+	const { limit, offset, reset } = usePagination({
+		initialLimit: 10,
+		prefix: PAGINATION_PREFIX.CUSTOMER_SUBSCRIPTIONS,
+	});
+
+	usePaginationReset(reset, sanitizedFilters, sanitizedSorts);
+
 	const {
-		data: subscriptions,
+		data: subscriptionsData,
 		isLoading: subscriptionsLoading,
 		error: subscriptionsError,
 	} = useQuery({
-		queryKey: ['subscriptions', customerId],
-		queryFn: () => fetchAllSubscriptions(customerId!),
+		queryKey: ['customerSubscriptions', customerId, limit, offset, sanitizedFilters, sanitizedSorts],
+		queryFn: () =>
+			SubscriptionApi.searchSubscriptions({
+				customer_id: customerId!,
+				limit,
+				offset,
+				filters: sanitizedFilters,
+				sort: sanitizedSorts,
+			}),
+		enabled: !!customerId,
 	});
+
+	const currentPageItems = subscriptionsData?.items ?? [];
+
+	const uniquePlanIds = useMemo(() => [...new Set(currentPageItems.map((s) => s.plan_id).filter(Boolean))] as string[], [currentPageItems]);
+
+	const planQueries = useQueries({
+		queries: uniquePlanIds.map((planId) => ({
+			queryKey: ['plan', planId],
+			queryFn: () => PlanApi.getPlanById(planId),
+			enabled: !!planId,
+		})),
+	});
+
+	const planMap = useMemo(() => {
+		const map = new Map<string, { id: string; name: string }>();
+		planQueries.forEach((query) => {
+			if (query.data?.id) {
+				map.set(query.data.id, { id: query.data.id, name: query.data.name ?? '' });
+			}
+		});
+		return map;
+	}, [planQueries]);
+
+	const subscriptionsWithPlan = useMemo(
+		() =>
+			currentPageItems.map((s) => ({
+				...s,
+				plan: s.plan_id ? (planMap.get(s.plan_id) ?? undefined) : undefined,
+			})),
+		[currentPageItems, planMap],
+	);
+
+	const isPlansLoading = planQueries.some((q) => q.isLoading);
+
+	const overrideQueries = useQueries({
+		queries: currentPageItems.map((sub) => ({
+			queryKey: ['subscriptionOverride', sub.id],
+			queryFn: async () => {
+				const result = await PriceApi.ListPrices({
+					entity_type: PRICE_ENTITY_TYPE.SUBSCRIPTION,
+					entity_ids: [sub.id],
+					limit: 1,
+				});
+				return {
+					subscriptionId: sub.id,
+					hasOverride: (result.items?.length || 0) > 0,
+				};
+			},
+			enabled: !!sub.id,
+		})),
+	});
+
+	const subscriptionOverrides = useMemo(() => {
+		const overrideMap = new Map<string, boolean>();
+		overrideQueries.forEach((query) => {
+			if (query.data) {
+				overrideMap.set(query.data.subscriptionId, query.data.hasOverride);
+			}
+		});
+		return overrideMap;
+	}, [overrideQueries]);
+
+	const isOverridesLoading = overrideQueries.some((query) => query.isLoading);
 
 	const {
 		data: usageData,
@@ -70,7 +226,7 @@ const CustomerOverviewTab = () => {
 	});
 
 	const {
-		data: customer,
+		data: _customer,
 		isLoading: customerLoading,
 		error: customerError,
 	} = useQuery({
@@ -78,41 +234,9 @@ const CustomerOverviewTab = () => {
 		queryFn: () => CustomerApi.getCustomerById(customerId!),
 		enabled: !!customerId,
 	});
+	void _customer; // used for cache; loading/error drive UI
 
-	// Check for subscription overrides
-	const overrideQueries = useQueries({
-		queries:
-			subscriptions?.map((sub) => ({
-				queryKey: ['subscriptionOverride', sub.id],
-				queryFn: async () => {
-					const result = await PriceApi.ListPrices({
-						entity_type: PRICE_ENTITY_TYPE.SUBSCRIPTION,
-						entity_ids: [sub.id],
-						limit: 1,
-					});
-					return {
-						subscriptionId: sub.id,
-						hasOverride: (result.items?.length || 0) > 0,
-					};
-				},
-				enabled: !!sub.id,
-			})) || [],
-	});
-
-	// Create a map of subscription IDs to override status
-	const subscriptionOverrides = useMemo(() => {
-		const overrideMap = new Map<string, boolean>();
-		overrideQueries.forEach((query) => {
-			if (query.data) {
-				overrideMap.set(query.data.subscriptionId, query.data.hasOverride);
-			}
-		});
-		return overrideMap;
-	}, [overrideQueries]);
-
-	const isOverridesLoading = overrideQueries.some((query) => query.isLoading);
-
-	if (subscriptionsLoading || usageLoading || upcomingGrantsLoading || customerLoading || isOverridesLoading) {
+	if (subscriptionsLoading || usageLoading || upcomingGrantsLoading || customerLoading || isOverridesLoading || isPlansLoading) {
 		return <Loader />;
 	}
 
@@ -121,28 +245,45 @@ const CustomerOverviewTab = () => {
 	}
 
 	const renderSubscriptionContent = () => {
-		if ((subscriptions?.length || 0) > 0) {
-			return (
-				<Card variant='notched'>
-					<CardHeader title='Subscriptions' cta={!isArchived && <AddButton onClick={handleAddSubscription} />} />
-					<SubscriptionTable
-						onRowClick={(row) => {
-							navigate(`${RouteNames.customers}/${customerId}/subscription/${row.id}`);
-						}}
-						data={subscriptions as Subscription[]}
-						subscriptionOverrides={subscriptionOverrides}
-						customerName={customer?.name}
-					/>
-				</Card>
-			);
-		}
+		const hasItems = (currentPageItems?.length ?? 0) > 0;
 
 		return (
-			<NoDataCard
-				title='Subscriptions'
-				subtitle={isArchived ? 'No subscriptions found' : 'No active subscriptions'}
-				cta={!isArchived && <AddButton onClick={handleAddSubscription} />}
-			/>
+			<Card variant='notched'>
+				<CardHeader title='Subscriptions' cta={!isArchived && <AddButton onClick={handleAddSubscription} />} />
+				<QueryBuilder
+					filterOptions={subscriptionFilterOptions}
+					filters={filters}
+					onFilterChange={setFilters}
+					sortOptions={subscriptionSortOptions}
+					selectedSorts={sorts}
+					onSortChange={setSorts}
+					debounceTime={300}
+				/>
+				{hasItems ? (
+					<>
+						<SubscriptionTable
+							onRowClick={(row) => {
+								navigate(`${RouteNames.customers}/${customerId}/subscription/${row.id}`);
+							}}
+							data={subscriptionsWithPlan as Subscription[]}
+							subscriptionOverrides={subscriptionOverrides}
+						/>
+						<Spacer className='!h-4' />
+						<ShortPagination
+							unit='Subscriptions'
+							totalItems={subscriptionsData?.pagination?.total ?? 0}
+							prefix={PAGINATION_PREFIX.CUSTOMER_SUBSCRIPTIONS}
+							pageSize={limit}
+						/>
+					</>
+				) : (
+					<NoDataCard
+						title='Subscriptions'
+						subtitle={isArchived ? 'No subscriptions found' : 'No active subscriptions'}
+						cta={!isArchived && <AddButton onClick={handleAddSubscription} />}
+					/>
+				)}
+			</Card>
 		);
 	};
 
@@ -150,7 +291,6 @@ const CustomerOverviewTab = () => {
 		<div className='space-y-6'>
 			{renderSubscriptionContent()}
 
-			{/* customer entitlements table */}
 			{(usageData?.features?.length || 0) > 0 && (
 				<Card variant='notched'>
 					<CardHeader title='Entitlements' />
@@ -158,7 +298,6 @@ const CustomerOverviewTab = () => {
 				</Card>
 			)}
 
-			{/* upcoming credit grant applications */}
 			<UpcomingCreditGrantApplicationsTable data={upcomingCreditGrantApplications?.items ?? []} customerId={customerId} />
 		</div>
 	);

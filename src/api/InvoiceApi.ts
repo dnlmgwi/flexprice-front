@@ -5,11 +5,11 @@ import AuthService from '@/core/auth/AuthService';
 import EnvironmentApi from '@/api/EnvironmentApi';
 import {
 	GetInvoicesResponse,
-	GetAllInvoicesPayload,
+	InvoiceFilter,
+	UpdatePaymentStatusPayload,
 	UpdateInvoiceStatusPayload,
 	GetInvoicePreviewPayload,
 	CreateInvoicePayload,
-	GetInvoicesByFiltersPayload,
 	VoidInvoicePayload,
 	RecalculateInvoiceResponse,
 } from '@/types/dto';
@@ -17,28 +17,22 @@ import {
 class InvoiceApi {
 	private static baseurl = '/invoices';
 
+	/** List/search invoices by filter. Always POSTs to /invoices/search with filter as JSON body. */
+	public static async listInvoices(filter: InvoiceFilter = {}): Promise<GetInvoicesResponse> {
+		return await AxiosClient.post<GetInvoicesResponse>(`${this.baseurl}/search`, filter);
+	}
+
+	/** List invoices for a single customer. Uses listInvoices with customer_id filter. */
 	public static async getCustomerInvoices(customerId: string): Promise<GetInvoicesResponse> {
-		const url = generateQueryParams(this.baseurl, { customer_id: customerId });
-		return await AxiosClient.get<GetInvoicesResponse>(url);
+		return await this.listInvoices({ customer_id: customerId });
 	}
 
 	public static async getInvoiceById(invoiceId: string): Promise<Invoice> {
 		return await AxiosClient.get<Invoice>(`${this.baseurl}/${invoiceId}`);
 	}
 
-	public static async updateInvoicePaymentStatus(invoiceId: string, status: string): Promise<Invoice> {
-		return await AxiosClient.put<Invoice>(`${this.baseurl}/${invoiceId}/payment`, {
-			payment_status: status,
-		});
-	}
-
-	public static async getAllInvoices(query: GetAllInvoicesPayload = {}): Promise<GetInvoicesResponse> {
-		const url = generateQueryParams(this.baseurl, query);
-		return await AxiosClient.get<GetInvoicesResponse>(url);
-	}
-
-	public static async getInvoicesByFilters(payload: GetInvoicesByFiltersPayload): Promise<GetInvoicesResponse> {
-		return await AxiosClient.post<GetInvoicesResponse>(`${this.baseurl}/search`, payload);
+	public static async updateInvoicePaymentStatus(invoiceId: string, payload: UpdatePaymentStatusPayload): Promise<Invoice> {
+		return await AxiosClient.put<Invoice>(`${this.baseurl}/${invoiceId}/payment`, payload);
 	}
 
 	public static async updateInvoiceStatus(payload: UpdateInvoiceStatusPayload): Promise<Invoice> {
@@ -58,8 +52,7 @@ class InvoiceApi {
 	}
 
 	public static async getInvoicePreview(payload: GetInvoicePreviewPayload) {
-		const url = generateQueryParams(`${this.baseurl}/preview`, payload);
-		return await AxiosClient.get(url);
+		return await AxiosClient.post<Invoice>(`${this.baseurl}/preview`, payload);
 	}
 
 	public static async createInvoice(payload: CreateInvoicePayload): Promise<Invoice> {

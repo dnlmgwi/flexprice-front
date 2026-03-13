@@ -24,7 +24,7 @@ export interface ListGroupsResponse {
 	pagination: Pagination;
 }
 
-export interface GroupFilter extends QueryFilter {
+export interface GroupFilter extends Omit<QueryFilter, 'sort'> {
 	entity_type?: GROUP_ENTITY_TYPE;
 	filters?: TypedBackendFilter[];
 	sort?: TypedBackendSort[];

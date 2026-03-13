@@ -324,7 +324,7 @@ const AddEntitlementDrawer: FC<Props> = ({
 				items: entitlementRequests,
 			};
 
-			return await EntitlementApi.createBulkEntitlement(bulkRequest);
+			return await EntitlementApi.createBulk(bulkRequest);
 		},
 		onSuccess: () => {
 			toast.success('Entitlements added successfully');

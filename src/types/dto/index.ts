@@ -106,23 +106,26 @@ export type {
 } from './Dashboard';
 
 export type {
+	EntitlementFilter,
 	EntitlementFilters,
 	EntitlementResponse,
 	CreateEntitlementRequest,
 	CreateBulkEntitlementRequest,
 	CreateBulkEntitlementResponse,
+	UpdateEntitlementRequest,
+	ListEntitlementsResponse,
 } from './Entitlement';
 
 export type { CreateIntegrationRequest, LinkedinIntegrationResponse, IntegrationResponse } from './Integration';
 
 export type {
 	GetInvoicesResponse,
-	GetAllInvoicesPayload,
+	InvoiceFilter,
+	UpdatePaymentStatusPayload,
 	UpdateInvoiceStatusPayload,
 	GetInvoicePreviewPayload,
 	CreateInvoicePayload,
 	GetInvoicePdfPayload,
-	GetInvoicesByFiltersPayload,
 	VoidInvoicePayload,
 	RecalculateInvoiceResponse,
 } from './InvoiceApi';
@@ -192,20 +195,14 @@ export type { UpdateEnvironmentPayload, CreateEnvironmentPayload, ListEnvironmen
 export { CREDIT_NOTE_STATUS, CREDIT_NOTE_REASON, CREDIT_NOTE_TYPE } from '@/models';
 
 export type {
-	CreatePlanEntitlementRequest,
-	CreatePlanPriceRequest,
 	CreatePlanRequest,
 	ClonePlanRequest,
-	UpdatePlanPriceRequest,
-	UpdatePlanEntitlementRequest,
-	UpdatePlanCreditGrantRequest,
 	UpdatePlanRequest,
 	PlanResponse,
 	CreatePlanResponse,
 	ListPlansResponse,
 	SynchronizationSummary,
 	SynchronizePlanPricesWithSubscriptionResponse,
-	GetPlanCreditGrantsResponse,
 } from './Plan';
 
 export type { CreateCouponRequest, UpdateCouponRequest, GetCouponResponse, ListCouponsResponse, CouponFilter } from './Coupon';
@@ -257,6 +254,9 @@ export type {
 	ListCreditGrantsResponse,
 	GetCreditGrantsRequest,
 	GetCreditGrantsResponse,
+	CreditGrantFilter,
+	SearchCreditGrantsRequest,
+	SearchCreditGrantsResponse,
 	ProcessScheduledCreditGrantApplicationsResponse,
 	CancelFutureCreditGrantRequest,
 	DeleteCreditGrantRequest,

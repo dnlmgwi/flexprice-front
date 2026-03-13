@@ -14,7 +14,11 @@ import { PRICE_ENTITY_TYPE } from '@/models/Price';
 
 interface Props {
 	plan: Partial<Plan>;
+	/** Optional initial prices when editing (e.g. from PriceApi.searchPrices). Plan no longer has inline prices. */
+	initialPrices?: InternalPrice[];
 	setPlanField: <K extends keyof Plan>(field: K, value: Plan[K]) => void;
+	/** Called when prices change. Use this to sync prices to parent state; backend expects prices created via Price API. */
+	onPricesChange?: (recurring: InternalPrice[], usage: InternalPrice[]) => void;
 }
 
 enum SubscriptionType {
@@ -65,12 +69,14 @@ export interface InternalPrice extends Partial<Price> {
 	price_unit_config?: PriceUnitConfig;
 }
 
-const SetupChargesSection: React.FC<Props> = ({ plan, setPlanField }) => {
+const SetupChargesSection: React.FC<Props> = ({ plan, initialPrices, setPlanField, onPricesChange }) => {
 	const [subscriptionType, setSubscriptionType] = useState<string>();
 	const [recurringCharges, setRecurringCharges] = useState<InternalPrice[]>(
-		plan.prices?.filter((price) => price.type === PRICE_TYPE.FIXED) || [],
+		initialPrices?.filter((price: InternalPrice) => price.type === PRICE_TYPE.FIXED) || [],
 	);
-	const [usageCharges, setUsageCharges] = useState<InternalPrice[]>(plan.prices?.filter((price) => price.type === PRICE_TYPE.USAGE) || []);
+	const [usageCharges, setUsageCharges] = useState<InternalPrice[]>(
+		initialPrices?.filter((price: InternalPrice) => price.type === PRICE_TYPE.USAGE) || [],
+	);
 
 	const getEmptyPrice = (type: SubscriptionType): InternalPrice => ({
 		amount: '',
@@ -95,7 +101,12 @@ const SetupChargesSection: React.FC<Props> = ({ plan, setPlanField }) => {
 	};
 
 	const updatePlanPrices = (recurring: InternalPrice[], usage: InternalPrice[]) => {
-		setPlanField('prices', [...recurring, ...usage] as unknown as Price[]);
+		if (onPricesChange) {
+			onPricesChange(recurring, usage);
+		} else {
+			// Legacy: some parents may still pass a setPlanField that accepts extended plan shape
+			(setPlanField as (field: keyof Plan | 'prices', value: unknown) => void)('prices', [...recurring, ...usage] as Price[]);
+		}
 	};
 
 	const handleAddNewPrice = (type: SubscriptionType) => {

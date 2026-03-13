@@ -1,46 +1,15 @@
-import { CreditGrant, Pagination, Plan, Metadata, Entitlement, Price, Meter } from '@/models';
-import { CreateCreditGrantRequest } from './CreditGrant';
-import { CreatePriceRequest } from './Price';
+import { Pagination, Plan, Metadata } from '@/models';
 
 // ============================================
 // Plan Request Types
 // ============================================
-
-export interface CreatePlanEntitlementRequest {
-	feature_id: string;
-	feature_type: string;
-	static_value?: string;
-	usage_reset_period?: string;
-	has_unlimited_usage?: boolean;
-	over_usage_strategy?: string;
-}
-
-export type CreatePlanPriceRequest = CreatePriceRequest;
 
 export interface CreatePlanRequest {
 	name: string;
 	lookup_key?: string;
 	description?: string;
 	display_order?: number;
-	prices?: CreatePlanPriceRequest[];
-	entitlements?: CreatePlanEntitlementRequest[];
-	credit_grants?: CreateCreditGrantRequest[];
 	metadata?: Metadata;
-}
-
-export interface UpdatePlanPriceRequest {
-	id?: string;
-	price?: CreatePriceRequest;
-}
-
-export interface UpdatePlanEntitlementRequest {
-	id?: string;
-	entitlement?: CreatePlanEntitlementRequest;
-}
-
-export interface UpdatePlanCreditGrantRequest {
-	id?: string;
-	credit_grant?: CreateCreditGrantRequest;
 }
 
 export interface UpdatePlanRequest {
@@ -48,9 +17,6 @@ export interface UpdatePlanRequest {
 	lookup_key?: string;
 	description?: string;
 	display_order?: number;
-	prices?: UpdatePlanPriceRequest[];
-	entitlements?: UpdatePlanEntitlementRequest[];
-	credit_grants?: UpdatePlanCreditGrantRequest[];
 	metadata?: Metadata;
 }
 
@@ -66,12 +32,7 @@ export interface ClonePlanRequest {
 // Plan Response Types
 // ============================================
 
-export interface PlanResponse extends Omit<Plan, 'prices' | 'entitlements' | 'credit_grants'> {
-	prices?: Price[];
-	entitlements?: Entitlement[];
-	credit_grants?: CreditGrant[];
-	meters?: Meter[];
-}
+export type PlanResponse = Plan;
 
 export type CreatePlanResponse = Plan;
 
@@ -100,8 +61,4 @@ export interface SynchronizePlanPricesWithSubscriptionResponse {
 	plan_id: string;
 	plan_name: string;
 	synchronization_summary: SynchronizationSummary;
-}
-
-export interface GetPlanCreditGrantsResponse extends Pagination {
-	items: CreditGrant[];
 }

@@ -16,7 +16,7 @@ interface CreditGrantsTableProps {
 
 const CreditGrantsTable: React.FC<CreditGrantsTableProps> = ({ data, onDelete, showEmptyRow = false }) => {
 	const handleDelete = async (grant: CreditGrant) => {
-		await CreditGrantApi.Delete(grant.id);
+		await CreditGrantApi.delete(grant.id);
 
 		if (onDelete) {
 			await onDelete(grant);

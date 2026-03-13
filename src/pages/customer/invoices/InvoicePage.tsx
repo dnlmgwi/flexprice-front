@@ -207,12 +207,12 @@ const InvoicesPage = () => {
 				render: (row: Invoice) => getStatusChip(row.invoice_status),
 			},
 			{
-				title: 'Customer Slug',
+				title: 'Customer',
 				render: (row: Invoice) => {
-					if (!row.customer?.external_id) {
+					if (!row.customer?.name || !row.customer?.id) {
 						return '--';
 					}
-					return <RedirectCell redirectUrl={`${RouteNames.customers}/${row.customer?.id}`}>{row.customer?.external_id}</RedirectCell>;
+					return <RedirectCell redirectUrl={`${RouteNames.customers}/${row.customer.id}`}>{row.customer.name}</RedirectCell>;
 				},
 			},
 			{
@@ -247,9 +247,9 @@ const InvoicesPage = () => {
 				}}
 				dataConfig={{
 					queryKey: 'fetchInvoices',
-					fetchFn: async (params) => InvoiceApi.getInvoicesByFilters(params),
+					fetchFn: async (params) => InvoiceApi.listInvoices(params),
 					probeFetchFn: async (params) =>
-						InvoiceApi.getInvoicesByFilters({
+						InvoiceApi.listInvoices({
 							...params,
 							limit: 1,
 							offset: 0,

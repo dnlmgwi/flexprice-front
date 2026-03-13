@@ -1,10 +1,10 @@
 import { ENTITY_STATUS } from '@/models';
 
 export interface QueryFilter {
-	limit?: number;
+	limit?: number | null;
 	offset?: number;
 	status?: ENTITY_STATUS;
-	sort?: string | any;
+	sort?: string;
 	order?: string;
 	expand?: string;
 }

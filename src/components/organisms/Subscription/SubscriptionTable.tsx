@@ -5,16 +5,13 @@ import { Chip, Tooltip } from '@/components/atoms';
 import { formatBillingPeriodForDisplay } from '@/utils/common/helper_functions';
 import formatDate from '@/utils/common/format_date';
 import SubscriptionActionButton from './SubscriptionActionButton';
-import { Info, ExternalLink } from 'lucide-react';
-import { Link } from 'react-router';
-import { RouteNames } from '@/core/routes/Routes';
+import { Info } from 'lucide-react';
 
 export interface SubscriptionTableProps {
 	data: Subscription[];
 	onRowClick?: (row: Subscription) => void;
 	allowRedirect?: boolean;
 	subscriptionOverrides?: Map<string, boolean>;
-	customerName?: string;
 }
 
 export const getSubscriptionStatus = (status: string) => {
@@ -51,48 +48,30 @@ export const formatSubscriptionStatus = (status: string) => {
 	}
 };
 
-const SubscriptionTable: FC<SubscriptionTableProps> = ({
-	data,
-	onRowClick,
-	allowRedirect = true,
-	subscriptionOverrides,
-	customerName,
-}): JSX.Element => {
+const SubscriptionTable: FC<SubscriptionTableProps> = ({ data, onRowClick, allowRedirect = true, subscriptionOverrides }): JSX.Element => {
 	const columns: ColumnData<Subscription>[] = [
 		{
 			title: 'Plan Name',
 			render: (row) => {
 				const hasOverride = subscriptionOverrides?.get(row.id);
-				const originalPlanName = row.plan?.name;
-				const originalPlanId = row.plan?.id;
+				const planName = row.plan?.name || row.plan_id || '—';
 
-				if (hasOverride && customerName) {
-					const tooltipContent =
-						originalPlanName && originalPlanId ? (
-							<div className='flex items-center gap-1.5'>
-								<span>Overridden plan from</span>
-								<Link
-									to={`${RouteNames.plan}/${originalPlanId}`}
-									className='flex items-center gap-1 underline decoration-dashed decoration-[1px] decoration-gray-500/50 underline-offset-2 hover:decoration-gray-700/70 transition-colors'
-									onClick={(e) => e.stopPropagation()}>
-									<span>{originalPlanName}</span>
-									<ExternalLink className='w-3 h-3' />
-								</Link>
-							</div>
-						) : (
-							<span>Overridden plan from {originalPlanName || 'original plan'}</span>
-						);
-
-					return (
-						<div className='flex items-center gap-1.5'>
-							<span>{`${customerName} Custom Plan`}</span>
-							<Tooltip content={tooltipContent} delayDuration={0}>
-								<Info className='h-4 w-4 text-muted-foreground hover:text-foreground transition-colors' />
+				return (
+					<div className='flex items-center gap-1.5'>
+						<span>{planName}</span>
+						{hasOverride && (
+							<Tooltip content='Plan modified' delayDuration={0}>
+								<span
+									tabIndex={0}
+									role='img'
+									aria-label='Plan modified'
+									className='inline-flex cursor-default rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'>
+									<Info className='h-4 w-4 shrink-0 text-muted-foreground hover:text-foreground transition-colors' />
+								</span>
 							</Tooltip>
-						</div>
-					);
-				}
-				return originalPlanName;
+						)}
+					</div>
+				);
 			},
 		},
 		{

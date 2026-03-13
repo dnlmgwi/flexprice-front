@@ -64,7 +64,7 @@ const InvoicePaymentStatusModal: FC<Props> = ({ isOpen, onOpenChange, invoice })
 
 	const { mutate: updatePayment, isPending } = useMutation({
 		mutationFn: async ({ invoiceId, status }: { invoiceId: string; status: string }) => {
-			return await InvoiceApi.updateInvoicePaymentStatus(invoiceId, status);
+			return await InvoiceApi.updateInvoicePaymentStatus(invoiceId, { payment_status: status });
 		},
 		async onSuccess() {
 			toast.success('Payment status updated successfully');

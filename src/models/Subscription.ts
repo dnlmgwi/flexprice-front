@@ -101,6 +101,9 @@ export interface Subscription extends BaseModel {
 
 	// experimental fields
 	readonly schedule: Schedule;
+
+	// commitment duration
+	readonly commitment_duration?: string;
 }
 
 export interface SubscriptionUsage extends BaseModel {

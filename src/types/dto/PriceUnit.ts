@@ -37,7 +37,7 @@ export interface ListPriceUnitsResponse {
 // PriceUnit Filter Types
 // ============================================
 
-export interface PriceUnitFilter extends QueryFilter, TimeRangeFilter {
+export interface PriceUnitFilter extends Omit<QueryFilter, 'sort'>, TimeRangeFilter {
 	filters?: TypedBackendFilter[];
 	sort?: TypedBackendSort[];
 	price_unit_ids?: string[];

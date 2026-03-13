@@ -12,7 +12,7 @@ const sanitizeData = <T extends DataObject>(data?: T, allowEmptyKeys?: string[])
 
 	return Object.entries(data).reduce<Partial<T>>((acc, [key, value]) => {
 		const keepEmpty = allowEmptyKeys?.includes(key) && value === '';
-		if (value !== null && value !== undefined && (value !== '' || keepEmpty)) {
+		if (value !== undefined && (value !== '' || keepEmpty)) {
 			acc[key as keyof T] = value;
 		}
 		return acc;

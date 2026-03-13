@@ -9,6 +9,7 @@ import {
 	Metadata,
 } from '@/models';
 import { QueryFilter, TimeRangeFilter } from './base';
+import { TypedBackendFilter, TypedBackendSort } from '@/types/formatters/QueryBuilder';
 
 // ============================================
 // Credit Grant Request Types
@@ -87,7 +88,7 @@ export const creditGrantToInternal = (grant: CreditGrant): InternalCreditGrantRe
  * Converts an InternalCreditGrantRequest to CreateCreditGrantRequest (removes id)
  */
 export const internalToCreateRequest = (internal: InternalCreditGrantRequest): CreateCreditGrantRequest => {
-	const { id, ...createRequest } = internal;
+	const { id: _id, ...createRequest } = internal;
 	return createRequest;
 };
 
@@ -105,9 +106,31 @@ export interface GetCreditGrantsResponse extends Pagination {
 	items: CreditGrant[];
 }
 
-export interface GetCreditGrantsRequest extends QueryFilter, TimeRangeFilter {
-	subscription_ids?: string[];
+// ============================================
+// Credit Grant Filter Types (matches backend structure)
+// ============================================
+
+export interface CreditGrantFilter extends Omit<QueryFilter, 'sort'>, TimeRangeFilter {
+	// Complex filtering support (matches backend Filters field)
+	filters?: TypedBackendFilter[];
+	sort?: TypedBackendSort[];
+
+	// Entity-specific filters (matches backend)
 	plan_ids?: string[];
+	subscription_ids?: string[];
+	scope?: CREDIT_GRANT_SCOPE;
+	credit_grant_ids?: string[];
+}
+
+/** GET request filter for credit grants */
+export type GetCreditGrantsRequest = CreditGrantFilter;
+
+/** Request body for POST /search */
+export type SearchCreditGrantsRequest = CreditGrantFilter;
+
+export interface SearchCreditGrantsResponse {
+	items: CreditGrantResponse[];
+	pagination?: { total?: number; limit?: number; offset?: number };
 }
 
 export interface ProcessScheduledCreditGrantApplicationsResponse {

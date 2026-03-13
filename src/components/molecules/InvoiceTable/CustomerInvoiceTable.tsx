@@ -1,8 +1,9 @@
 import { FC } from 'react';
 import FlexpriceTable, { ColumnData } from '../Table';
-import { getCurrencySymbol, toSentenceCase } from '@/utils/common/helper_functions';
+import { getCurrencySymbol } from '@/utils/common/helper_functions';
+import { formatBillingPeriod } from '@/utils/common/format_date';
 import { Invoice } from '@/models/Invoice';
-import { getPaymentStatusChip } from './InvoiceTable';
+import { getPaymentStatusChip, getStatusChip } from './InvoiceTable';
 
 import InvoiceTableMenu from './InvoiceTableMenu';
 
@@ -20,15 +21,22 @@ const CustomerInvoiceTable: FC<Props> = ({ data, onRowClick }) => {
 		},
 		{
 			title: 'Status',
-			render: (row) => <>{toSentenceCase(row.invoice_status)}</>,
+			render: (row: Invoice) => getStatusChip(row.invoice_status),
 		},
 		{
 			title: 'Payment Status',
-
 			render: (row: Invoice) => getPaymentStatusChip(row.payment_status),
 		},
 		{
-			title: 'Total Amount',
+			title: 'Billing Period',
+			render: (row) => <>{row.period_start && row.period_end ? formatBillingPeriod(row.period_start, row.period_end) : '--'}</>,
+		},
+		{
+			title: 'Total',
+			render: (row) => <>{`${getCurrencySymbol(row.currency)} ${row.total}`}</>,
+		},
+		{
+			title: 'Amount Due',
 			render: (row) => <>{`${getCurrencySymbol(row.currency)} ${row.amount_due}`}</>,
 		},
 		{

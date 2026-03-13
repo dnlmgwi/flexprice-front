@@ -120,7 +120,7 @@ const getEntitlementColumns = (_addonId: string): ColumnData<EntitlementResponse
 				<ActionButton
 					id={row?.id}
 					deleteMutationFn={async () => {
-						return await EntitlementApi.deleteEntitlementById(row?.id);
+						return await EntitlementApi.delete(row?.id);
 					}}
 					refetchQueryKey='fetchAddon'
 					entityName={row?.feature?.name}
