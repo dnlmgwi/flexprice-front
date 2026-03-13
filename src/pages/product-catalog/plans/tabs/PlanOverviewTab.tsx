@@ -6,6 +6,7 @@ import { PlanApi } from '@/api';
 import { refetchQueries } from '@/core/services/tanstack/ReactQueryProvider';
 import { Loader } from '@/components/atoms';
 import toast from 'react-hot-toast';
+import { DataType, FilterOperator } from '@/types/common/QueryBuilder';
 
 const PlanOverviewTab = () => {
 	const { planId } = useParams<{ planId: string }>();
@@ -17,7 +18,13 @@ const PlanOverviewTab = () => {
 	} = useQuery({
 		queryKey: ['fetchPlan', planId],
 		queryFn: async () => {
-			return await PlanApi.getPlanById(planId!);
+			const response = await PlanApi.getPlansByFilter({
+				filters: [{ field: 'id', operator: FilterOperator.EQUAL, data_type: DataType.STRING, value: { string: planId } }],
+				limit: 1,
+				offset: 0,
+				sort: [],
+			});
+			return response.items[0] ?? null;
 		},
 		enabled: !!planId,
 	});

@@ -105,7 +105,8 @@ const UsageBreakdownWidget = ({ analyticsParams, label }: UsageBreakdownWidgetPr
 	const { groupedBuckets, ungroupedItems } = useMemo(() => {
 		const map = new Map<string, GroupBucket>();
 		for (const item of sortedItems) {
-			const group = item.price?.group;
+			// Check multiple sources for group information (same logic as CustomerAnalyticsTab)
+			const group = item.group ?? item.feature?.group ?? item.price?.group;
 			const groupKey = group?.id ?? UNGROUPED_KEY;
 			const groupName = group?.name ?? 'No group';
 			if (!map.has(groupKey)) map.set(groupKey, { groupKey, groupName, items: [] });
@@ -294,9 +295,9 @@ const UsageBreakdownWidget = ({ analyticsParams, label }: UsageBreakdownWidgetPr
 													className='h-10 align-middle border-b'
 													style={rowStyle}>
 													<TableCell
-														className='py-2.5 pl-6 font-normal text-[13px] align-middle'
+														className='py-2.5 pl-3 font-normal text-[13px] align-middle'
 														style={{ color: 'var(--portal-text-primary, #374151)' }}>
-														<span>{row.name || row.feature?.name || row.event_name || 'Unknown'}</span>
+														{row.name || row.feature?.name || row.event_name || 'Unknown'}
 													</TableCell>
 													<TableCell className='py-2.5 font-normal text-[13px]' style={{ color: 'var(--portal-text-secondary, #6b7280)' }}>
 														{renderTotalUsagePortal(row)}
