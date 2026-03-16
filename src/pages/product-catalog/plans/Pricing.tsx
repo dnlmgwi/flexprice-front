@@ -14,6 +14,8 @@ import { PricingCard, type PricingCardProps } from '@/components/molecules';
 import { ApiDocsContent } from '@/components/molecules';
 import { PlanDrawer } from '@/components/molecules';
 import { Price, INVOICE_CADENCE, PRICE_TYPE, ENTITLEMENT_ENTITY_TYPE, PRICE_ENTITY_TYPE } from '@/models';
+import { generateExpandQueryParams } from '@/utils/common/api_helper';
+import { EXPAND } from '@/models/expand';
 
 type PriceType = {
 	currency: string;
@@ -232,6 +234,7 @@ const PricingPage = () => {
 					entity_ids: planIds,
 					limit: PAGE_SIZE,
 					offset,
+					expand: generateExpandQueryParams([EXPAND.FEATURES]),
 				});
 				items.push(...response.items);
 				if (response.items.length < PAGE_SIZE) break;
