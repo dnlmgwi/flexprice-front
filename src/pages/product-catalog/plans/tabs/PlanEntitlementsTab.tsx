@@ -7,12 +7,13 @@ import { EntitlementApi } from '@/api';
 import { FlexpriceTable, ColumnData, RedirectCell, AddEntitlementDrawer } from '@/components/molecules';
 import { getFeatureTypeChips } from '@/components/molecules/CustomerUsageTable/CustomerUsageTable';
 import { formatAmount } from '@/components/atoms/Input/Input';
-import { Entitlement, ENTITY_STATUS, FEATURE_TYPE, ENTITLEMENT_ENTITY_TYPE } from '@/models';
+import { Entitlement, ENTITY_STATUS, FEATURE_TYPE, ENTITLEMENT_ENTITY_TYPE, EXPAND } from '@/models';
 import { EntitlementResponse } from '@/types';
 import { RouteNames } from '@/core/routes/Routes';
 import { ActionButton } from '@/components/atoms';
 import { Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { generateExpandQueryParams } from '@/utils/common/api_helper';
 
 const getFeatureValue = (entitlement: Entitlement) => {
 	const value = entitlement.usage_limit?.toFixed() || '';
@@ -27,9 +28,9 @@ const getFeatureValue = (entitlement: Entitlement) => {
 					<span className='text-[#64748B] text-sm font-normal font-sans'>
 						{value
 							? Number(value) > 0
-								? entitlement.feature.unit_plural || 'units'
-								: entitlement.feature.unit_singular || 'unit'
-							: entitlement.feature.unit_plural || 'units'}
+								? entitlement.feature?.unit_plural || 'units'
+								: entitlement.feature?.unit_singular || 'unit'
+							: entitlement.feature?.unit_plural || 'units'}
 					</span>
 				</span>
 			);
@@ -54,6 +55,8 @@ const PlanEntitlementsTab = () => {
 			return await EntitlementApi.search({
 				entity_ids: [planId!],
 				entity_type: ENTITLEMENT_ENTITY_TYPE.PLAN,
+				expand: generateExpandQueryParams([EXPAND.FEATURES]),
+				status: ENTITY_STATUS.PUBLISHED,
 			});
 		},
 		enabled: !!planId,

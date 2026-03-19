@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { BookOpen, ExternalLink, ChevronsUpDown, LogOut, ListChecks, Settings } from 'lucide-react';
+import { BookOpen, ExternalLink, ChevronsUpDown, LogOut, Settings } from 'lucide-react';
 import { RouteNames } from '@/core/routes/Routes';
 import { SidebarMenuButton, useSidebar, Popover, PopoverContent, PopoverTrigger, Skeleton } from '@/components/ui';
 import { cn } from '@/lib/utils';
@@ -29,13 +29,6 @@ const SidebarFooter = () => {
 	if (loading) return <Skeleton className='w-full h-10' />;
 
 	const dropdownItems = [
-		{
-			label: 'Onboarding',
-			icon: ListChecks,
-			onClick: () => {
-				navigate(RouteNames.onboarding);
-			},
-		},
 		{
 			label: 'Settings',
 			icon: Settings,

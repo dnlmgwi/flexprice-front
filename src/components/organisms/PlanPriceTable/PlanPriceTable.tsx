@@ -1,5 +1,5 @@
 import React, { FC, useCallback, useState, useMemo, useEffect } from 'react';
-import { Button, Card, CardHeader, NoDataCard, Chip, Tooltip, Loader } from '@/components/atoms';
+import { Button, Card, CardHeader, Chip, Tooltip, Loader } from '@/components/atoms';
 import {
 	FlexpriceTable,
 	ColumnData,
@@ -367,12 +367,6 @@ const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 	const tableItems = searchData?.items || [];
 	const totalFromSearch = searchData?.pagination?.total ?? 0;
 	const totalItems = totalFromSearch || Math.max(offset + tableItems.length, limit * page);
-	const hasActiveFilters = filters.some(
-		(f) =>
-			(f.valueString != null && String(f.valueString).trim() !== '') ||
-			(f.valueNumber != null && !Number.isNaN(f.valueNumber)) ||
-			(f.valueArray != null && f.valueArray.length > 0),
-	);
 
 	// ===== TABLE COLUMNS =====
 	const chargeColumns: ColumnData<Price>[] = [
@@ -485,7 +479,7 @@ const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 						</Button>
 					}
 				/>
-				<div className='pb-3'>
+				<div>
 					<QueryBuilder
 						filterOptions={chargeFilterOptions}
 						filters={filters}
@@ -500,23 +494,13 @@ const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 					<div className='flex items-center justify-center py-12'>
 						<Loader />
 					</div>
-				) : tableItems.length > 0 ? (
+				) : (
 					<>
 						<FlexpriceTable showEmptyRow columns={chargeColumns} data={tableItems} />
 						{(totalItems > 0 || page > 1) && (
 							<ShortPagination unit='Charges' totalItems={totalItems} pageSize={limit} prefix={PAGINATION_PREFIX.PLAN_CHARGES} />
 						)}
 					</>
-				) : (
-					<NoDataCard
-						title='Charges'
-						subtitle={hasActiveFilters ? 'No charges match your filters' : 'No charges added to the plan yet'}
-						cta={
-							<Button prefixIcon={<Plus />} onClick={() => navigate(`${RouteNames.plan}/${plan.id}/add-charges`)}>
-								Add
-							</Button>
-						}
-					/>
 				)}
 			</Card>
 		</>

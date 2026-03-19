@@ -25,6 +25,7 @@ import {
 	DropdownMenuOption,
 	FeatureDrawer,
 } from '@/components/molecules';
+import { FilterOperator, DataType } from '@/types/common/QueryBuilder';
 import { FeatureAlertDialog } from '@/components/molecules/FeatureAlertDialog';
 
 // Models and types
@@ -38,7 +39,7 @@ import { refetchQueries } from '@/core/services/tanstack/ReactQueryProvider';
 import { ENTITY_STATUS } from '@/models/base';
 import { EntitlementResponse } from '@/types/dto';
 import { METER_AGGREGATION_TYPE } from '@/models/Meter';
-import { PRICE_ENTITY_TYPE } from '@/models';
+import { ENTITLEMENT_ENTITY_TYPE, PRICE_ENTITY_TYPE } from '@/models';
 import { PriceApi } from '@/api/PriceApi';
 import { formatBillingPeriodForDisplay } from '@/utils/common/helper_functions';
 import { ChargeValueCell } from '@/components/molecules';
@@ -111,21 +112,34 @@ const FeatureDetails = () => {
 	const { data: linkedEntitlements } = useQuery({
 		queryKey: ['fetchLinkedEntitlements', featureId],
 		queryFn: async () =>
-			await EntitlementApi.list({
+			await EntitlementApi.search({
 				feature_ids: [featureId!],
-				expand: 'plans,features,prices',
+				expand: generateExpandQueryParams([EXPAND.PLANS, EXPAND.FEATURES, EXPAND.PRICES, EXPAND.ADDONS]),
 				status: ENTITY_STATUS.PUBLISHED,
+				filters: [
+					{
+						field: 'entity_type',
+						operator: FilterOperator.IN,
+						data_type: DataType.ARRAY,
+						value: {
+							array: [ENTITLEMENT_ENTITY_TYPE.PLAN, ENTITLEMENT_ENTITY_TYPE.ADDON],
+						},
+					},
+				],
 			}),
 		enabled: !!featureId,
 	});
 
 	const { data: linkedPrices } = useQuery({
-		queryKey: ['fetchLinkedPrices', featureId],
+		queryKey: ['fetchLinkedPrices', featureId, data?.meter?.id],
 		queryFn: async () => {
 			const prices = await PriceApi.ListPrices({
 				expand: generateExpandQueryParams([EXPAND.PLAN, EXPAND.ADDONS]),
 				meter_ids: [data?.meter?.id || ''],
 				start_date_lt: new Date().toISOString(),
+				status: ENTITY_STATUS.PUBLISHED,
+				limit: 10000,
+				offset: 0,
 			});
 			// Filter prices to only include PLAN or ADDON entity types
 			const filteredPrices = {
@@ -138,6 +152,14 @@ const FeatureDetails = () => {
 		},
 		enabled: !!data?.meter?.id,
 	});
+
+	const planOrAddonEntitlements = useMemo(
+		() =>
+			(linkedEntitlements?.items ?? []).filter(
+				(e) => e.entity_type === ENTITLEMENT_ENTITY_TYPE.PLAN || e.entity_type === ENTITLEMENT_ENTITY_TYPE.ADDON,
+			),
+		[linkedEntitlements?.items],
+	);
 
 	const { mutate: archiveFeature, isPending: isArchiving } = useMutation({
 		mutationFn: async () => await FeatureApi.deleteFeature(featureId!),
@@ -175,15 +197,19 @@ const FeatureDetails = () => {
 
 	const columns: ColumnData<EntitlementResponse>[] = [
 		{
-			title: 'Plan',
+			title: 'Plan / Addon',
 			render: (rowData) => {
-				return <RedirectCell redirectUrl={`${RouteNames.plan}/${rowData?.entity_id}`}>{rowData?.plan?.name}</RedirectCell>;
+				if (rowData.entity_type === ENTITLEMENT_ENTITY_TYPE.ADDON) {
+					return <RedirectCell redirectUrl={`${RouteNames.addons}/${rowData.entity_id}`}>{rowData.addon?.name ?? '—'}</RedirectCell>;
+				}
+				return <RedirectCell redirectUrl={`${RouteNames.plan}/${rowData.entity_id}`}>{rowData.plan?.name ?? '—'}</RedirectCell>;
 			},
 		},
 		{
 			title: 'Status',
 			render: (rowData) => {
-				const label = formatChips(rowData?.plan?.status || '');
+				const rawStatus = rowData.entity_type === ENTITLEMENT_ENTITY_TYPE.ADDON ? rowData.addon?.status : rowData.plan?.status;
+				const label = formatChips(rawStatus || '');
 				return <Chip variant={label === 'Active' ? 'success' : 'default'} label={label} />;
 			},
 		},
@@ -201,8 +227,8 @@ const FeatureDetails = () => {
 					const usageLimit = rowData.usage_limit ? formatAmount(rowData.usage_limit.toString()) : 'Unlimited';
 					const unit =
 						rowData.usage_limit === null || rowData.usage_limit > 1
-							? rowData.feature.unit_plural || 'units'
-							: rowData.feature.unit_singular || 'unit';
+							? rowData.feature?.unit_plural || 'units'
+							: rowData.feature?.unit_singular || 'unit';
 					return (
 						<span className='text-right'>
 							{usageLimit}
@@ -323,10 +349,10 @@ const FeatureDetails = () => {
 					</div>
 				)}
 
-				{(linkedEntitlements?.items?.length || 0) > 0 ? (
+				{planOrAddonEntitlements.length > 0 ? (
 					<Card variant='notched'>
 						<CardHeader title='Entitlements' />
-						<FlexpriceTable showEmptyRow columns={columns} data={linkedEntitlements?.items ?? []} variant='no-bordered' />
+						<FlexpriceTable showEmptyRow columns={columns} data={planOrAddonEntitlements} variant='no-bordered' />
 					</Card>
 				) : (
 					<NoDataCard title='Entitlements' subtitle='No entitlements linked to the feature yet' />
