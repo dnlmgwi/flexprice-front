@@ -17,6 +17,7 @@ interface Props {
 	total_tax?: number;
 	discount?: number;
 	amount_paid?: number;
+	overpaid_amount?: number;
 	amount_remaining?: number;
 	title?: string;
 	refetch?: () => void;
@@ -50,6 +51,7 @@ const InvoiceLineItemTable: FC<Props> = ({
 	discount,
 	total_tax,
 	amount_paid,
+	overpaid_amount,
 	amount_remaining,
 	subtotal,
 	total_prepaid_credits_applied,
@@ -186,6 +188,14 @@ const InvoiceLineItemTable: FC<Props> = ({
 							<span className='text-xs text-gray-500'>Amount paid</span>
 							<span className='text-sm text-gray-900 font-medium'>{formatAmount(Number(amount_paid ?? 0), currency ?? '')}</span>
 						</div>
+
+						{/* Overpaid amount - only show when the customer paid more than net payable */}
+						{overpaid_amount !== undefined && overpaid_amount !== null && Number(overpaid_amount) > 0 && (
+							<div className='flex justify-between items-center py-1.5'>
+								<span className='text-xs text-gray-500'>Overpaid</span>
+								<span className='text-sm text-gray-900 font-medium'>{formatAmount(Number(overpaid_amount), currency ?? '')}</span>
+							</div>
+						)}
 
 						{/* Remaining balance - show the final outstanding amount */}
 						{((amount_remaining !== undefined && amount_remaining !== null && Number(amount_remaining) > 0) ||

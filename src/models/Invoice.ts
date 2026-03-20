@@ -47,6 +47,8 @@ export interface Invoice extends BaseModel {
 	// total_prepaid_credits_applied is the total amount of prepaid credits applied to this invoice.
 	// This represents the sum of all prepaid applications (from credit grants, credit notes, etc.) that reduce the invoice amount.
 	readonly total_prepaid_credits_applied: number;
+	// overpaid_amount is the excess amount paid beyond net payable (amount_paid - amount_due when positive).
+	readonly overpaid_amount?: number;
 	// recalculated_invoice_id is the ID of the replacement invoice created when this invoice was voided and recalculated.
 	// When set, it forms a parent→child link from this (voided) invoice to the new replacement invoice.
 	readonly recalculated_invoice_id?: string;
