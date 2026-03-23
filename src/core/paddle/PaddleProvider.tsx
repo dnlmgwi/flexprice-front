@@ -7,8 +7,9 @@ const PADDLE_TOKEN = import.meta.env.VITE_PADDLE_CLIENT_TOKEN;
  * PaddleProvider — routing guard + demo init only.
  *
  * Responsibilities:
- * 1. Redirect: if _ptxn or token params are present on any page other than
+ * 1. Redirect: if _ptxn (Paddle transaction id) is present on any page other than
  *    /checkout, redirect there preserving the full query string.
+ *    Do not use `token` alone — /customer-portal uses ?token= for the session JWT.
  * 2. Demo init: for non-checkout pages, initialize Paddle.js with the
  *    VITE_PADDLE_CLIENT_TOKEN so the developer demo page works.
  *
@@ -22,10 +23,10 @@ export const PaddleProvider = ({ children }: { children: React.ReactNode }) => {
 		if (typeof window === 'undefined') return;
 
 		const params = new URLSearchParams(window.location.search);
-		const hasPaddleParams = params.has(PADDLE_URL_PARAMS.TXN) || params.has(PADDLE_URL_PARAMS.TOKEN);
+		// Only _ptxn is Paddle-specific; `token` collides with customer portal session links
+		const isPaddleCheckoutRedirect = params.has(PADDLE_URL_PARAMS.TXN);
 
-		// Redirect to /checkout if Paddle params land on the wrong page
-		if (hasPaddleParams && window.location.pathname !== CHECKOUT_PATH) {
+		if (isPaddleCheckoutRedirect && window.location.pathname !== CHECKOUT_PATH) {
 			window.location.replace(`${CHECKOUT_PATH}${window.location.search}`);
 			return;
 		}
