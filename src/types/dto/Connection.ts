@@ -17,6 +17,7 @@ export interface GetConnectionsResponse {
 export interface CreateConnectionPayload {
 	name: string;
 	provider_type: CONNECTION_PROVIDER_TYPE;
+	metadata?: Record<string, string>;
 	encrypted_secret_data:
 		| {
 				provider_type: CONNECTION_PROVIDER_TYPE.STRIPE;
@@ -69,6 +70,16 @@ export interface CreateConnectionPayload {
 				publishable_key?: string;
 				secret_key?: string;
 				webhook_secret?: string;
+		  }
+		| {
+				provider_type: CONNECTION_PROVIDER_TYPE.PADDLE;
+				api_key?: string;
+				webhook_secret?: string;
+				client_side_token?: string;
+		  }
+		| {
+				api_key?: string;
+				webhook_secret?: string;
 		  };
 	sync_config?: {
 		plan?: {
@@ -96,6 +107,7 @@ export interface CreateConnectionPayload {
 
 export interface UpdateConnectionPayload {
 	name: string;
+	metadata?: Record<string, string>;
 	encrypted_secret_data?:
 		| {
 				provider_type: CONNECTION_PROVIDER_TYPE.QUICKBOOKS;

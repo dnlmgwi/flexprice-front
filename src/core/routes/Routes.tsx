@@ -88,6 +88,8 @@ import {
 	ErrorPage,
 	DashboardPage,
 	CustomerPortalWrapper,
+	// Checkout
+	CheckoutPage,
 } from '@/pages';
 import { RouterErrorElement } from '@/components/atoms/ErrorBoundary';
 
@@ -180,6 +182,9 @@ export const RouteNames = {
 	onboarding: '/onboarding',
 	settings: '/settings',
 	customerBilling: '/settings/billing',
+
+	// checkout (public - for invoice payments)
+	checkout: '/checkout',
 };
 
 const DefaultRoute = () => {
@@ -216,8 +221,16 @@ export const MainRouter = createBrowserRouter([
 		element: <CustomerPortalWrapper />,
 	},
 	{
+		path: RouteNames.checkout,
+		element: <CheckoutPage />,
+	},
+	{
 		path: RouteNames.onboarding,
 		element: <OnboardingTenant />,
+	},
+	{
+		path: RouteNames.checkout,
+		element: <CheckoutPage />,
 	},
 	// private routes
 	{

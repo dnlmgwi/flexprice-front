@@ -231,7 +231,7 @@ const PlanDetailsPage = () => {
 										variant='outline'
 										className='flex gap-2'>
 										<RefreshCw />
-										Sync
+										Sync Usage Charges
 									</Button>
 								</span>
 							</TooltipTrigger>

@@ -99,7 +99,6 @@ const CustomerSubscriptionDetailsPage: FC = () => {
 			!!subscriptionDetails &&
 			subscriptionDetails.subscription_status !== SUBSCRIPTION_STATUS.CANCELLED &&
 			subscriptionDetails.subscription_status !== SUBSCRIPTION_STATUS.TRIALING &&
-			subscriptionDetails.subscription_status !== SUBSCRIPTION_STATUS.DRAFT &&
 			!!subscription_id,
 	});
 
@@ -364,8 +363,7 @@ const CustomerSubscriptionDetailsPage: FC = () => {
 			)}
 
 			{/* Upcoming Invoices: show card with header immediately; preview API can be slow so we show a dedicated loader */}
-			{subscriptionDetails?.subscription_status !== SUBSCRIPTION_STATUS.DRAFT &&
-				subscriptionDetails?.subscription_status !== SUBSCRIPTION_STATUS.CANCELLED &&
+			{subscriptionDetails?.subscription_status !== SUBSCRIPTION_STATUS.CANCELLED &&
 				subscriptionDetails?.subscription_status !== SUBSCRIPTION_STATUS.TRIALING && (
 					<div className='card !mt-4'>
 						{isPreviewLoading ? (

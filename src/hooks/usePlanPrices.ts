@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { PriceApi } from '@/api/PriceApi';
-import { ENTITY_STATUS, PRICE_ENTITY_TYPE } from '@/models';
+import { ENTITY_STATUS, EXPAND, PRICE_ENTITY_TYPE } from '@/models';
 import type { SearchPricesResponse } from '@/types/dto';
 import type { Price } from '@/models/Price';
 import { DataType, FilterOperator } from '@/types/common/QueryBuilder';
+import { generateExpandQueryParams } from '@/utils/common/api_helper';
 
 /** Shared query key for plan prices so all consumers share the same cache. */
 export const PLAN_PRICES_QUERY_KEY = ['planPrices'] as const;
@@ -58,6 +59,7 @@ export function usePlanPrices(planId: string | undefined) {
 					},
 				],
 				allow_expired_prices: false,
+				expand: generateExpandQueryParams([EXPAND.METERS]),
 				limit: 10000,
 			});
 			const filteredItems = response.items.filter((price: Price) => isPlanPriceActive(price));

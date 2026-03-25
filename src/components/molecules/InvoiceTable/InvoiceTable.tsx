@@ -38,6 +38,8 @@ export const getPaymentStatusChip = (status: string) => {
 			return <Chip variant='default' label='Refunded' />;
 		case PAYMENT_STATUS.PARTIALLY_REFUNDED:
 			return <Chip variant='default' label='Partially Refunded' />;
+		case PAYMENT_STATUS.OVERPAID:
+			return <Chip variant='warning' label='Overpaid' />;
 		default:
 			return <Chip variant='default' label='Unknown' />;
 	}

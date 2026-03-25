@@ -36,7 +36,7 @@ export interface SearchPricesRequest {
 	filters?: TypedBackendFilter[];
 	sorts?: TypedBackendSort[];
 	allow_expired_prices?: boolean;
-	expand?: string[];
+	expand?: string;
 	limit?: number | null;
 	offset?: number;
 }
