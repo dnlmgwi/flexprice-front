@@ -60,6 +60,8 @@ export interface Subscription extends BaseModel {
 	readonly invoicing_customer_id?: string;
 	/** Parent subscription ID when this subscription is a child (e.g. in parent-child subscription hierarchy) */
 	readonly parent_subscription_id?: string;
+	/** Hierarchy role: standalone, parent (aggregates child usage), or inherited (child mirror subscription). */
+	readonly subscription_type?: SUBSCRIPTION_TYPE;
 	readonly plan_id: string;
 	readonly environment_id: string;
 	readonly tenant_id: string;
@@ -197,6 +199,13 @@ export enum SUBSCRIPTION_STATUS {
 	INCOMPLETE = 'incomplete',
 	TRIALING = 'trialing',
 	DRAFT = 'draft',
+}
+
+/** How this subscription participates in subscription hierarchy (backend subscription_type). */
+export enum SUBSCRIPTION_TYPE {
+	STANDALONE = 'standalone',
+	PARENT = 'parent',
+	INHERITED = 'inherited',
 }
 
 // PaymentBehavior determines how subscription payments are handled

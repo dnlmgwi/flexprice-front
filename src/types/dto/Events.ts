@@ -159,7 +159,8 @@ export interface FireEventsPayload {
 
 // Analytics DTOs
 export interface GetUsageAnalyticsRequest {
-	external_customer_id: string;
+	/** Single customer; use with include_children or as the only selector (backend merges with external_customer_ids when both set). */
+	external_customer_id?: string;
 	feature_ids?: string[];
 	sources?: string[];
 	start_time?: string;
@@ -168,6 +169,8 @@ export interface GetUsageAnalyticsRequest {
 	window_size?: WindowSize;
 	expand?: string[]; // allowed values: "price", "meter", "feature", "subscription_line_item","plan","addon"
 	property_filters?: Record<string, string[]>;
+	/** When true, aggregates usage from child customers linked via subscription hierarchy (V2 analytics pipeline). */
+	include_children?: boolean;
 }
 
 export interface CustomAnalyticItem {

@@ -48,7 +48,7 @@ class CustomerApi {
 		if (filter.end_time != null) params.end_time = filter.end_time;
 		if (filter.customer_ids?.length) params.customer_ids = filter.customer_ids.join(',');
 		if (filter.external_ids?.length) params.external_ids = filter.external_ids.join(',');
-		// parent_customer_ids intentionally omitted — parent customer hierarchy is deprecated
+		// parent_customer_ids removed from customer APIs (subscription hierarchy replaces customer parent linkage)
 		const url = generateQueryParams(this.baseUrl, params);
 		return await AxiosClient.get<ListCustomersResponse>(url);
 	}
