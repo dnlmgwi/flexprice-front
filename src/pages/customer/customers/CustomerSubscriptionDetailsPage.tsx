@@ -268,6 +268,16 @@ const CustomerSubscriptionDetailsPage: FC = () => {
 					</>
 				)}
 
+				<div className='w-full flex justify-between items-center'>
+					<p className='text-[#71717A] text-sm'>Subscription type</p>
+					<p className='text-[#09090B] text-sm'>
+						{subscriptionDetails?.subscription_type
+							? subscriptionDetails.subscription_type.charAt(0).toUpperCase() + subscriptionDetails.subscription_type.slice(1)
+							: 'Standalone'}
+					</p>
+				</div>
+				<Spacer className='!my-4' />
+
 				{subscriptionDetails?.parent_subscription_id && (
 					<>
 						<div className='w-full flex justify-between items-center'>

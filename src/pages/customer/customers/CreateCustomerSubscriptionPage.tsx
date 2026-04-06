@@ -93,6 +93,8 @@ export type SubscriptionFormState = {
 	prorationCreateLineItems: boolean;
 	hasModifiedPlanCreditGrants?: boolean;
 	addedSubscriptionLineItems: AddedSubscriptionLineItem[];
+	/** Customers that should receive inherited child subscriptions (serialized as external IDs on create) */
+	inheritanceCustomers: Customer[];
 };
 
 const usePlans = () => {
@@ -257,6 +259,7 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 		prorationCreateLineItems: false,
 		hasModifiedPlanCreditGrants: false,
 		addedSubscriptionLineItems: [],
+		inheritanceCustomers: [],
 	});
 
 	const { data: plans, isLoading: plansLoading, isError: plansError } = usePlans();
@@ -322,6 +325,7 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 				entitlementOverrides: {},
 				creditGrants: (subscriptionData.details.credit_grants || []).map(creditGrantToInternal),
 				enable_true_up: (subscriptionData.details as any).enable_true_up ?? false,
+				inheritanceCustomers: [],
 			}));
 		}
 	}, [subscriptionData, customerId]);
@@ -445,6 +449,7 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 			paymentTerms,
 			addedSubscriptionLineItems,
 			customerId: formCustomerId,
+			inheritanceCustomers,
 		} = subscriptionState;
 
 		let finalStartDate: string;
@@ -521,6 +526,8 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 					})
 				: undefined;
 
+		const inheritanceExternalIds = inheritanceCustomers.map((c) => c.external_id?.trim()).filter((id): id is string => Boolean(id));
+
 		return {
 			billingPeriod,
 			selectedPlan,
@@ -543,6 +550,7 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 			paymentTerms,
 			sanitizedAddons,
 			addedSubscriptionLineItems,
+			inheritanceExternalIds,
 		};
 	};
 
@@ -602,6 +610,10 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 			line_items:
 				!sanitized.sanitizedPhases && sanitized.addedSubscriptionLineItems && sanitized.addedSubscriptionLineItems.length > 0
 					? sanitized.addedSubscriptionLineItems.map(({ tempId: _tempId, ...req }) => req)
+					: undefined,
+			inheritance:
+				sanitized.inheritanceExternalIds.length > 0
+					? { external_customer_ids_to_inherit_subscription: sanitized.inheritanceExternalIds }
 					: undefined,
 		};
 

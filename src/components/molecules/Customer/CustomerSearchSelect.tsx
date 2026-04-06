@@ -16,6 +16,11 @@ export interface CustomerSearchSelectProps extends Omit<AsyncSearchableSelectPro
 	 * Omits the synthetic "None" row used by default search mode.
 	 */
 	selfCustomer?: Customer;
+	/**
+	 * When false, omits the synthetic "None" row (e.g. pickers that must always choose a real customer).
+	 * Ignored when `selfCustomer` is set (None is already omitted).
+	 */
+	includeNoneOption?: boolean;
 }
 
 /**
@@ -27,6 +32,7 @@ const CustomerSearchSelect: React.FC<CustomerSearchSelectProps> = ({
 	searchPlaceholder = 'Search for customer...',
 	excludeId,
 	selfCustomer,
+	includeNoneOption = true,
 	...props
 }) => {
 	const searchFn = async (query: string) => {
@@ -63,15 +69,16 @@ const CustomerSearchSelect: React.FC<CustomerSearchSelectProps> = ({
 			? [{ value: selfCustomer.id, label: 'Self', data: selfCustomer }]
 			: [];
 
-		const noneRow: Array<SelectOption & { data: Customer }> = selfCustomer
-			? []
-			: [
-					{
-						value: rootCustomer.id,
-						label: rootCustomer.name,
-						data: rootCustomer,
-					},
-				];
+		const noneRow: Array<SelectOption & { data: Customer }> =
+			selfCustomer || !includeNoneOption
+				? []
+				: [
+						{
+							value: rootCustomer.id,
+							label: rootCustomer.name,
+							data: rootCustomer,
+						},
+					];
 
 		const items: Array<SelectOption & { data: Customer }> = [
 			...noneRow,

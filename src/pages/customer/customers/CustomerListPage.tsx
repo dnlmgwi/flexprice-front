@@ -16,8 +16,7 @@ import {
 	SortDirection,
 	FilterCondition,
 } from '@/types/common/QueryBuilder';
-import { ENTITY_STATUS, EXPAND } from '@/models';
-import { generateExpandQueryParams } from '@/utils/common/api_helper';
+import { ENTITY_STATUS } from '@/models';
 import { useNavigate } from 'react-router';
 import { RouteNames } from '@/core/routes/Routes';
 import formatDate from '@/utils/common/format_date';
@@ -222,11 +221,7 @@ const CustomerListPage = () => {
 				}}
 				dataConfig={{
 					queryKey: 'fetchCustomers',
-					fetchFn: async (params) =>
-						CustomerApi.getCustomersByFilters({
-							...params,
-							expand: generateExpandQueryParams([EXPAND.PARENT_CUSTOMER]),
-						}),
+					fetchFn: async (params) => CustomerApi.getCustomersByFilters({ ...params }),
 					probeFetchFn: async (params) =>
 						CustomerApi.getCustomersByFilters({
 							...params,
