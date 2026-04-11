@@ -30,6 +30,7 @@ export interface InvoiceFilter {
 	customer_id?: string;
 	external_customer_id?: string;
 	subscription_id?: string;
+	subscription_customer_id?: string;
 	invoice_type?: string;
 	invoice_status?: string[];
 	payment_status?: string[];

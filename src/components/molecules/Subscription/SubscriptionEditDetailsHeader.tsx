@@ -36,6 +36,12 @@ const SubscriptionEditDetailsHeader: FC<SubscriptionEditDetailsHeaderProps> = ({
 				label: 'Status',
 				value: getSubscriptionStatus(subscription?.subscription_status ?? ''),
 			},
+			{
+				label: 'Subscription type',
+				value: subscription?.subscription_type
+					? subscription.subscription_type.charAt(0).toUpperCase() + subscription.subscription_type.slice(1)
+					: 'Standalone',
+			},
 			{ label: 'Billing Cycle', value: subscription?.billing_cycle || '--' },
 			{ label: 'Start Date', value: formatDate(subscription?.start_date ?? '') },
 			{ label: 'Current Period End', value: formatDate(subscription?.current_period_end ?? '') },

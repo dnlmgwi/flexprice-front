@@ -8,6 +8,8 @@ import { PRICE_TYPE } from './Price';
 export interface Invoice extends BaseModel {
 	readonly customer_id: string;
 	readonly subscription_id: string;
+	// subscription_customer_id is the subscription owner's customer ID when it differs from customer_id (invoicing customer)
+	readonly subscription_customer_id?: string;
 	readonly invoice_type: INVOICE_TYPE;
 	readonly invoice_status: INVOICE_STATUS;
 	readonly payment_status: PAYMENT_STATUS;

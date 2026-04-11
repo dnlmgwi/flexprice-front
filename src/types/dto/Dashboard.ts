@@ -34,6 +34,8 @@ export interface DashboardAnalyticsRequest {
 	window_size?: WindowSize;
 	expand?: string[]; // allowed values: "price", "meter", "feature", "subscription_line_item","plan","addon"
 	property_filters?: Record<string, string[]>;
+	/** Forwarded when portal API supports subscription-hierarchy aggregation. */
+	include_children?: boolean;
 }
 
 // Dashboard Cost Analytics Request (similar to GetCostAnalyticsRequest but for authenticated customer)

@@ -1,13 +1,43 @@
-import { Customer, CustomerEntitlement, CustomerUsage, Pagination, Metadata } from '@/models';
+import { Customer, CustomerEntitlement, CustomerUsage, Pagination, Metadata, ENTITY_STATUS } from '@/models';
 import { TypedBackendFilter, TypedBackendSort } from '../formatters/QueryBuilder';
 import { SubscriptionResponse } from './Subscription';
 
-/** Integration entity mapping for external provider systems (e.g. stripe, razorpay) */
-export interface IntegrationEntityMapping {
-	/** Integration provider name (e.g. "stripe", "razorpay", "paypal") */
-	provider: string;
-	/** External entity ID from the provider */
+/** Backend integration entity type (CreateEntityIntegrationMappingRequest.entity_type) */
+export type IntegrationEntityType =
+	| 'customer'
+	| 'plan'
+	| 'invoice'
+	| 'subscription'
+	| 'payment'
+	| 'credit_note'
+	| 'addon'
+	| 'item'
+	| 'item_price'
+	| 'price';
+
+/** Matches backend CreateEntityIntegrationMappingRequest */
+export interface CreateEntityIntegrationMappingRequest {
+	entity_id: string;
+	entity_type: IntegrationEntityType;
+	provider_type: string;
+	provider_entity_id: string;
+	metadata?: Record<string, unknown>;
+}
+
+/** Matches backend EntityIntegrationMappingResponse */
+export interface EntityIntegrationMappingResponse {
 	id: string;
+	entity_id: string;
+	entity_type: IntegrationEntityType;
+	provider_type: string;
+	provider_entity_id: string;
+	environment_id: string;
+	tenant_id: string;
+	status: string;
+	created_at: string;
+	updated_at: string;
+	created_by: string;
+	updated_by: string;
 }
 
 export interface GetCustomerSubscriptionsResponse {
@@ -54,8 +84,6 @@ export interface CustomerFilter extends Pagination {
 	external_id?: string;
 	/** Filter by email */
 	email?: string;
-	/** @deprecated Parent customer hierarchy is being removed. Do not use. */
-	parent_customer_ids?: string[];
 	/** Time range (if supported by backend) */
 	start_time?: string;
 	end_time?: string;
@@ -65,6 +93,7 @@ export interface CustomerFilter extends Pagination {
 export interface GetCustomerByFiltersPayload extends CustomerFilter {
 	filters?: TypedBackendFilter[];
 	sort?: TypedBackendSort[];
+	status?: ENTITY_STATUS;
 }
 
 export interface TaxRateOverride {
@@ -88,11 +117,7 @@ export interface CreateCustomerRequest {
 	/** When true, prevents the customer onboarding workflow from being triggered (internal use) */
 	skip_onboarding_workflow?: boolean;
 	/** Provider integration mappings for this customer */
-	integration_entity_mapping?: IntegrationEntityMapping[];
-	/** @deprecated Parent customer hierarchy is replaced by invoicing_customer_id on subscriptions. Do not use. */
-	parent_customer_id?: string;
-	/** @deprecated Parent customer hierarchy is replaced by invoicing_customer_id on subscriptions. Do not use. */
-	parent_customer_external_id?: string;
+	integration_entity_mapping?: CreateEntityIntegrationMappingRequest[];
 }
 
 export interface UpdateCustomerRequest {
@@ -107,16 +132,12 @@ export interface UpdateCustomerRequest {
 	address_country?: string;
 	metadata?: Metadata;
 	/** Provider integration mappings for this customer */
-	integration_entity_mapping?: IntegrationEntityMapping[];
-	/** @deprecated Parent customer hierarchy is replaced by invoicing_customer_id on subscriptions. Do not use. */
-	parent_customer_id?: string;
-	/** @deprecated Parent customer hierarchy is replaced by invoicing_customer_id on subscriptions. Do not use. */
-	parent_customer_external_id?: string;
+	integration_entity_mapping?: CreateEntityIntegrationMappingRequest[];
 }
 
-/** Customer response with optional nested parent (matches backend CustomerResponse) */
+/** Customer response (matches backend CustomerResponse) */
 export interface CustomerResponse extends Customer {
-	parent_customer?: CustomerResponse;
+	integrations?: EntityIntegrationMappingResponse[];
 }
 
 /** List response for customers (matches backend ListCustomersResponse) */

@@ -18,7 +18,6 @@ import {
 	TIER_MODE,
 	CreatePriceTier,
 	TransformQuantity,
-	INVOICE_BILLING,
 	PRICE_TYPE,
 	PRICE_UNIT_TYPE,
 	INVOICE_CADENCE,
@@ -53,6 +52,8 @@ export interface ListSubscriptionsPayload extends Omit<QueryFilter, 'sort'>, Tim
 	parent_subscription_ids?: string[];
 	/** Filters by invoicing customer IDs (backend: invoicing_customer_ids) */
 	invoicing_customer_ids?: string[];
+	/** Filters by subscription hierarchy role (backend: subscription_type, comma-separated in query) */
+	subscription_type?: string[];
 }
 
 import { TaxRateOverride } from './tax';
@@ -232,24 +233,17 @@ export interface CancelSubscriptionPayload {
 // ENHANCED SUBSCRIPTION REQUEST/RESPONSE TYPES
 // =============================================================================
 
+/** Matches backend SubscriptionInheritanceConfig (subscription create). */
+export interface SubscriptionInheritanceConfig {
+	external_customer_ids_to_inherit_subscription?: string[];
+	parent_subscription_id?: string;
+	invoicing_customer_external_id?: string | null;
+}
+
 export interface CreateSubscriptionRequest {
 	// Customer identification - prioritized over external_customer_id if both provided
 	customer_id?: string;
 	external_customer_id?: string;
-	/** @deprecated Use invoicing_customer_id or invoicing_customer_external_id instead. Cannot be combined with those fields. */
-	invoice_billing?: INVOICE_BILLING;
-	/**
-	 * The internal customer ID to use for invoicing this subscription.
-	 * Overrides the default (the subscription's own customer).
-	 * Mutually exclusive with invoicing_customer_external_id — provide only one.
-	 */
-	invoicing_customer_id?: string;
-	/**
-	 * The external customer ID to use for invoicing this subscription.
-	 * Resolved to an internal ID by the backend via external_id lookup.
-	 * Mutually exclusive with invoicing_customer_id — provide only one.
-	 */
-	invoicing_customer_external_id?: string;
 
 	// Plan and billing configuration
 	plan_id: string;
@@ -322,8 +316,8 @@ export interface CreateSubscriptionRequest {
 	// Extra line items at creation (in addition to plan prices). Each has price_id or inline price.
 	line_items?: CreateSubscriptionLineItemRequest[];
 
-	// Parent subscription ID when this subscription is a child in a hierarchy
-	parent_subscription_id?: string | null;
+	/** When set, creates parent/inherited child subscriptions per backend hierarchy rules. */
+	inheritance?: SubscriptionInheritanceConfig;
 }
 
 export interface SubscriptionPhaseCreateRequest {
@@ -642,6 +636,8 @@ export interface SubscriptionFilter extends Omit<QueryFilter, 'sort'>, TimeRange
 	parent_subscription_ids?: string[];
 	/** Filters by invoicing customer IDs (backend: invoicing_customer_ids) */
 	invoicing_customer_ids?: string[];
+	/** Filters by subscription hierarchy role (backend: subscription_type) */
+	subscription_type?: string[];
 }
 
 // =============================================================================

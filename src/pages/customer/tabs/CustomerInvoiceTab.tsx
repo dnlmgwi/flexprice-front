@@ -1,11 +1,14 @@
 import { AddButton, CardHeader, Loader, NoDataCard } from '@/components/atoms';
 import { ApiDocsContent, CustomerInvoiceTable } from '@/components/molecules';
 import InvoiceApi from '@/api/InvoiceApi';
+import CustomerApi from '@/api/CustomerApi';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams, useOutletContext } from 'react-router';
 import { Card } from '@/components/atoms';
 import { Invoice as InvoiceModel } from '@/models/Invoice';
 import { RouteNames } from '@/core/routes/Routes';
+import { useMemo } from 'react';
+import Customer from '@/models/Customer';
 
 const CustomerInvoiceTab = () => {
 	const { id: customerId } = useParams();
@@ -16,9 +19,42 @@ const CustomerInvoiceTab = () => {
 		queryFn: async () => {
 			return await InvoiceApi.getCustomerInvoices(customerId!);
 		},
-
 		enabled: !!customerId,
 	});
+
+	// Collect subscription customer IDs that differ from the current customer
+	const subCustIds = useMemo(() => {
+		const ids = new Set<string>();
+		for (const inv of data?.items ?? []) {
+			if (inv.subscription_customer_id && inv.subscription_customer_id !== inv.customer_id) {
+				ids.add(inv.subscription_customer_id);
+			}
+		}
+		return [...ids];
+	}, [data?.items]);
+
+	const { data: subCustomersData } = useQuery({
+		queryKey: ['subscriptionCustomers', subCustIds],
+		queryFn: async () => {
+			const res = await CustomerApi.getCustomers({ customer_ids: subCustIds, limit: subCustIds.length });
+			return res.items ?? [];
+		},
+		enabled: subCustIds.length > 0,
+	});
+
+	const enrichedInvoices = useMemo(() => {
+		if (!data?.items) return [];
+		const custMap = new Map<string, Customer>();
+		for (const c of subCustomersData ?? []) {
+			custMap.set(c.id, c);
+		}
+		return data.items.map((inv) => {
+			if (inv.subscription_customer_id && inv.subscription_customer_id !== inv.customer_id) {
+				return { ...inv, subscription_customer: custMap.get(inv.subscription_customer_id) };
+			}
+			return inv;
+		});
+	}, [data?.items, subCustomersData]);
 
 	const { isArchived } = useOutletContext<{ isArchived: boolean }>();
 
@@ -65,7 +101,7 @@ const CustomerInvoiceTab = () => {
 						)
 					}
 				/>
-				<CustomerInvoiceTable onRowClick={handleShowDetails} customerId={customerId} data={data?.items ?? []} />
+				<CustomerInvoiceTable onRowClick={handleShowDetails} customerId={customerId} data={enrichedInvoices} />
 			</Card>
 		</div>
 	);

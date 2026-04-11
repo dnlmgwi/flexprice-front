@@ -34,7 +34,7 @@ import PhaseList from './PhaseList';
 import { SubscriptionPhaseCreateRequest, EntitlementOverrideRequest } from '@/types/dto/Subscription';
 import SubscriptionPriceTable from './SubscriptionPriceTable';
 import AddSubscriptionChargeDialog from './AddSubscriptionChargeDialog';
-import { CustomerSearchSelect } from '@/components/molecules/Customer';
+import { CustomerSearchSelect, InheritedCustomersTable } from '@/components/molecules/Customer';
 import { usePriceOverrides } from '@/hooks/usePriceOverrides';
 import { Coupon } from '@/models/Coupon';
 import { InternalCreditGrantRequest, creditGrantToInternal } from '@/types/dto/CreditGrant';
@@ -192,6 +192,7 @@ const SubscriptionForm = ({
 			priceOverrides: {},
 			linkedCoupon: null,
 			lineItemCoupons: {},
+			inheritanceCustomers: [],
 		}));
 	};
 
@@ -856,6 +857,14 @@ const SubscriptionForm = ({
 							}}
 							searchPlaceholder='Search for billing customer...'
 							disabled={isDisabled}
+						/>
+					</div>
+					<div className='space-y-3 md:col-span-2'>
+						<InheritedCustomersTable
+							data={state.inheritanceCustomers}
+							onChange={(customers) => setState((prev) => ({ ...prev, inheritanceCustomers: customers }))}
+							disabled={isDisabled}
+							subscriberCustomerId={state.customerId}
 						/>
 					</div>
 					<div className='flex flex-col space-y-2'>

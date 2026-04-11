@@ -5,6 +5,7 @@ import InvoiceTableMenu from '@/components/molecules/InvoiceTable/InvoiceTableMe
 import { QueryableDataArea } from '@/components/organisms';
 import GUIDES from '@/constants/guides';
 import InvoiceApi from '@/api/InvoiceApi';
+import CustomerApi from '@/api/CustomerApi';
 import {
 	FilterField,
 	FilterFieldType,
@@ -17,12 +18,13 @@ import {
 } from '@/types/common/QueryBuilder';
 import { searchCustomersForFilter } from '@/utils/filterSearchHelpers';
 import { ENTITY_STATUS } from '@/models';
+import Customer from '@/models/Customer';
 import { Invoice, INVOICE_STATUS, INVOICE_TYPE } from '@/models/Invoice';
 import { PAYMENT_STATUS } from '@/constants';
 import { useNavigate } from 'react-router';
 import { RouteNames } from '@/core/routes/Routes';
 import { formatDateShort, getCurrencySymbol } from '@/utils/common/helper_functions';
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 const sortingOptions: SortOption[] = [
 	{
@@ -191,14 +193,94 @@ const getPaymentStatusChip = (status: string) => {
 	}
 };
 
+/** Invoice enriched with subscription customer data (client-side only) */
+type EnrichedInvoice = Invoice & { subscription_customer?: Customer };
+
+/**
+ * Fetch subscription customers for invoices where subscription_customer_id differs from customer_id.
+ * Returns a map of customer_id -> Customer.
+ */
+async function fetchSubscriptionCustomers(invoices: Invoice[]): Promise<Map<string, Customer>> {
+	const subCustIds = new Set<string>();
+	for (const inv of invoices) {
+		if (inv.subscription_customer_id && inv.subscription_customer_id !== inv.customer_id) {
+			subCustIds.add(inv.subscription_customer_id);
+		}
+	}
+	if (subCustIds.size === 0) return new Map();
+
+	try {
+		const ids = [...subCustIds];
+		const res = await CustomerApi.getCustomersByFilters({
+			customer_ids: ids,
+			limit: ids.length,
+			offset: 0,
+			filters: [],
+			sort: [],
+			status: ENTITY_STATUS.PUBLISHED,
+		});
+		const map = new Map<string, Customer>();
+		for (const c of res.items ?? []) {
+			map.set(c.id, c);
+		}
+		return map;
+	} catch {
+		return new Map();
+	}
+}
+
+function invoiceHasDistinctSubscriptionCustomer(inv: Invoice): boolean {
+	return Boolean(inv.subscription_customer_id && inv.subscription_customer_id !== inv.customer_id);
+}
+
 const InvoicesPage = () => {
 	const navigate = useNavigate();
+	const [showSubscriptionCustomerColumn, setShowSubscriptionCustomerColumn] = useState(false);
 
-	const columns: ColumnData<Invoice>[] = useMemo(
-		() => [
+	const onInvoicesDataChange = useCallback((d: { items: EnrichedInvoice[]; pagination: { total?: number } } | undefined) => {
+		const items = d?.items ?? [];
+		setShowSubscriptionCustomerColumn(items.some(invoiceHasDistinctSubscriptionCustomer));
+	}, []);
+
+	const enrichedFetchFn = useCallback(async (params: any) => {
+		const result = await InvoiceApi.listInvoices(params);
+		const rawItems = result.items ?? [];
+		const hasMismatchOnPage = rawItems.some(invoiceHasDistinctSubscriptionCustomer);
+
+		const custMap = hasMismatchOnPage ? await fetchSubscriptionCustomers(rawItems) : new Map<string, Customer>();
+		const items: EnrichedInvoice[] = rawItems.map((inv) => {
+			if (invoiceHasDistinctSubscriptionCustomer(inv)) {
+				return { ...inv, subscription_customer: custMap.get(inv.subscription_customer_id!) };
+			}
+			return inv;
+		});
+		return { ...result, items };
+	}, []);
+
+	const columns: ColumnData<EnrichedInvoice>[] = useMemo(() => {
+		const subscriptionCustomerColumn: ColumnData<EnrichedInvoice> = {
+			title: 'Subscription Customer',
+			render: (row: EnrichedInvoice) => {
+				if (!invoiceHasDistinctSubscriptionCustomer(row)) {
+					return '--';
+				}
+				const subCust = row.subscription_customer;
+				if (!subCust?.name || !subCust?.id) {
+					return '--';
+				}
+				return <RedirectCell redirectUrl={`${RouteNames.customers}/${subCust.id}`}>{subCust.name}</RedirectCell>;
+			},
+		};
+
+		return [
 			{
-				fieldName: 'invoice_number',
-				title: 'Invoice ID',
+				title: 'Invoice Number',
+				render: (row: EnrichedInvoice) =>
+					row.invoice_status?.toUpperCase() === INVOICE_STATUS.DRAFT ? (
+						<span className='text-gray-400 italic text-[13px]'>To be generated</span>
+					) : (
+						<span>{row.invoice_number || '--'}</span>
+					),
 			},
 			{
 				title: 'Amount',
@@ -206,40 +288,40 @@ const InvoicesPage = () => {
 			},
 			{
 				title: 'Invoice Status',
-				render: (row: Invoice) => getStatusChip(row.invoice_status),
+				render: (row: EnrichedInvoice) => getStatusChip(row.invoice_status),
 			},
 			{
-				title: 'Customer',
-				render: (row: Invoice) => {
+				title: 'Billing Entity',
+				render: (row: EnrichedInvoice) => {
 					if (!row.customer?.name || !row.customer?.id) {
 						return '--';
 					}
 					return <RedirectCell redirectUrl={`${RouteNames.customers}/${row.customer.id}`}>{row.customer.name}</RedirectCell>;
 				},
 			},
+			...(showSubscriptionCustomerColumn ? [subscriptionCustomerColumn] : []),
 			{
 				title: 'Payment Status',
-				render: (row: Invoice) => getPaymentStatusChip(row.payment_status),
+				render: (row: EnrichedInvoice) => getPaymentStatusChip(row.payment_status),
 			},
 			{
 				title: 'Due Date',
-				render: (row: Invoice) => <span>{row.due_date ? formatDateShort(row.due_date) : '--'}</span>,
+				render: (row: EnrichedInvoice) => <span>{row.due_date ? formatDateShort(row.due_date) : '--'}</span>,
 			},
 			{
 				fieldVariant: 'interactive',
 				hideOnEmpty: true,
-				render: (row: Invoice) => {
+				render: (row: EnrichedInvoice) => {
 					return <InvoiceTableMenu data={row} />;
 				},
 			},
-		],
-		[],
-	);
+		];
+	}, [showSubscriptionCustomerColumn]);
 
 	return (
 		<Page heading='Invoices'>
 			<ApiDocsContent tags={['Invoices']} />
-			<QueryableDataArea<Invoice>
+			<QueryableDataArea<EnrichedInvoice>
 				queryConfig={{
 					filterOptions,
 					sortOptions: sortingOptions,
@@ -249,7 +331,8 @@ const InvoicesPage = () => {
 				}}
 				dataConfig={{
 					queryKey: 'fetchInvoices',
-					fetchFn: async (params) => InvoiceApi.listInvoices(params),
+					fetchFn: enrichedFetchFn,
+					onMainDataChange: onInvoicesDataChange,
 					probeFetchFn: async (params) =>
 						InvoiceApi.listInvoices({
 							...params,

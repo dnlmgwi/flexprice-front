@@ -55,11 +55,12 @@ export interface Subscription extends BaseModel {
 	readonly id: string;
 	readonly lookup_key: string;
 	readonly customer_id: string;
-	// InvoicingCustomerID is the customer ID to use for invoicing
-	// This can differ from the subscription customer (e.g., parent company invoicing for child company)
+	/** Read-only: API-resolved customer that receives invoices (may differ from subscriber when using hierarchy / inheritance). */
 	readonly invoicing_customer_id?: string;
 	/** Parent subscription ID when this subscription is a child (e.g. in parent-child subscription hierarchy) */
 	readonly parent_subscription_id?: string;
+	/** Hierarchy role: standalone, parent (aggregates child usage), or inherited (child mirror subscription). */
+	readonly subscription_type?: SUBSCRIPTION_TYPE;
 	readonly plan_id: string;
 	readonly environment_id: string;
 	readonly tenant_id: string;
@@ -161,16 +162,6 @@ export enum BILLING_CYCLE {
 	CALENDAR = 'calendar',
 }
 
-/**
- * @deprecated Use invoicing_customer_id or invoicing_customer_external_id on CreateSubscriptionRequest instead.
- * This enum controlled whether invoices went to a parent customer via the now-deprecated parent_customer_id hierarchy.
- */
-// InvoiceBillingConfig determines which customer should receive invoices for a subscription
-export enum INVOICE_BILLING {
-	INVOICED_TO_PARENT = 'invoice_to_parent',
-	INVOICED_TO_SELF = 'invoice_to_self',
-}
-
 export interface SubscriptionPhase extends BaseModel {
 	readonly id: string;
 	readonly subscription_id: string;
@@ -197,6 +188,13 @@ export enum SUBSCRIPTION_STATUS {
 	INCOMPLETE = 'incomplete',
 	TRIALING = 'trialing',
 	DRAFT = 'draft',
+}
+
+/** How this subscription participates in subscription hierarchy (backend subscription_type). */
+export enum SUBSCRIPTION_TYPE {
+	STANDALONE = 'standalone',
+	PARENT = 'parent',
+	INHERITED = 'inherited',
 }
 
 // PaymentBehavior determines how subscription payments are handled

@@ -50,8 +50,13 @@ const InvoiceTable: FC<Props> = ({ data }) => {
 
 	const columns: ColumnData[] = [
 		{
-			fieldName: 'invoice_number',
-			title: 'Invoice ID',
+			title: 'Invoice Number',
+			render: (row: Invoice) =>
+				row.invoice_status?.toUpperCase() === INVOICE_STATUS.DRAFT ? (
+					<span className='text-gray-400 italic text-[13px]'>To be generated</span>
+				) : (
+					<span>{row.invoice_number || '--'}</span>
+				),
 		},
 		{
 			title: 'Amount',
@@ -62,7 +67,7 @@ const InvoiceTable: FC<Props> = ({ data }) => {
 			render: (row: Invoice) => getStatusChip(row.invoice_status),
 		},
 		{
-			title: 'Customer',
+			title: 'Billing Entity',
 			render: (row: Invoice) => {
 				if (!row.customer?.name || !row.customer?.id) {
 					return '--';

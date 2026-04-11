@@ -85,7 +85,9 @@ export type {
 	ListCustomersResponse,
 	CustomerResponse,
 	CustomerFilter,
-	IntegrationEntityMapping,
+	CreateEntityIntegrationMappingRequest,
+	EntityIntegrationMappingResponse,
+	IntegrationEntityType,
 	PortalSessionResponse,
 	GetCustomerSubscriptionsResponse,
 	GetCustomerEntitlementsResponse,
@@ -152,6 +154,7 @@ export type {
 	SubscriptionPauseResponse,
 	SubscriptionResumeResponse,
 	CreateSubscriptionRequest,
+	SubscriptionInheritanceConfig,
 	UpdateSubscriptionRequest,
 	CancelSubscriptionPayload,
 	ListSubscriptionsPayload,
@@ -320,3 +323,5 @@ export type {
 	BatchWorkflowsRequest,
 	BatchWorkflowsResponse,
 } from './Workflow';
+
+export type { RevenueDashboardRequest, RevenueDashboardResponse, RevenueDashboardSummary, RevenueDashboardItem } from './RevenueDashboard';

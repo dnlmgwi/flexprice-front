@@ -9,6 +9,7 @@ import {
 import useUser from '@/hooks/useUser';
 import { useBreadcrumbsStore } from '@/store/useBreadcrumbsStore';
 import InvoiceApi from '@/api/InvoiceApi';
+import CustomerApi from '@/api/CustomerApi';
 import formatDate from '@/utils/common/format_date';
 import { useQuery } from '@tanstack/react-query';
 import { Download } from 'lucide-react';
@@ -45,6 +46,18 @@ const CustomerInvoiceDetail: FC<Props> = ({ invoice_id, breadcrumb_index }) => {
 	});
 
 	const { user } = useUser();
+
+	// Fetch subscription customer when it differs from billing customer
+	const hasSubscriptionCustomer = !!data?.subscription_customer_id && data.subscription_customer_id !== data.customer_id;
+
+	const { data: subscriptionCustomer } = useQuery({
+		queryKey: ['subscriptionCustomer', data?.subscription_customer_id],
+		queryFn: async () => {
+			const res = await CustomerApi.getCustomerById(data!.subscription_customer_id!);
+			return res;
+		},
+		enabled: hasSubscriptionCustomer,
+	});
 
 	useEffect(() => {
 		updateBreadcrumb(breadcrumb_index, data?.invoice_number ?? invoice_id);
@@ -160,7 +173,7 @@ const CustomerInvoiceDetail: FC<Props> = ({ invoice_id, breadcrumb_index }) => {
 						<Divider />
 					</div>
 
-					<div className='grid grid-cols-2  p-4 border-b border-gray-200'>
+					<div className={cn('grid p-4 border-b border-gray-200', hasSubscriptionCustomer ? 'grid-cols-3' : 'grid-cols-2')}>
 						<div className='text-left'>
 							<FormHeader className='!mb-2' title={user?.tenant.name} variant='sub-header' titleClassName='font-semibold' />
 							<p className={customerInfoClass}>{user?.tenant.name}</p>
@@ -169,13 +182,42 @@ const CustomerInvoiceDetail: FC<Props> = ({ invoice_id, breadcrumb_index }) => {
 						</div>
 
 						<div>
-							<FormHeader className='!mb-2' title='Bill to' variant='sub-header' titleClassName='font-semibold' />
+							<FormHeader
+								className='!mb-2'
+								title={hasSubscriptionCustomer ? 'Billing Entity' : 'Bill to'}
+								variant='sub-header'
+								titleClassName='font-semibold'
+							/>
 							<RedirectCell redirectUrl={`${RouteNames.customers}/${data?.customer?.id}`}>
 								<p className={customerInfoClass}>{data?.customer?.name || '--'}</p>
 							</RedirectCell>
 							<p className={customerInfoClass}>{data?.customer?.email || '--'}</p>
 							<p className={customerInfoClass}>{customerAddress || '--'}</p>
 						</div>
+
+						{hasSubscriptionCustomer && (
+							<div>
+								<FormHeader className='!mb-2' title='Subscription Customer' variant='sub-header' titleClassName='font-semibold' />
+								<RedirectCell redirectUrl={`${RouteNames.customers}/${subscriptionCustomer?.id ?? data?.subscription_customer_id}`}>
+									<p className={customerInfoClass}>{subscriptionCustomer?.name || '--'}</p>
+								</RedirectCell>
+								<p className={customerInfoClass}>{subscriptionCustomer?.email || '--'}</p>
+								<p className={customerInfoClass}>
+									{subscriptionCustomer
+										? [
+												subscriptionCustomer.address_line1,
+												subscriptionCustomer.address_line2,
+												subscriptionCustomer.address_city,
+												subscriptionCustomer.address_state,
+												subscriptionCustomer.address_postal_code,
+												subscriptionCustomer.address_country,
+											]
+												.filter(Boolean)
+												.join(' ') || '--'
+										: '--'}
+								</p>
+							</div>
+						)}
 					</div>
 					<InvoiceLineItemTable
 						title='Order Details'
