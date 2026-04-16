@@ -3,6 +3,10 @@ import {
 	LineItem as InvoiceLineItem,
 	BILLING_CYCLE,
 	SUBSCRIPTION_STATUS,
+	SUBSCRIPTION_MODIFY_LINE_ITEM_ACTION,
+	SUBSCRIPTION_MODIFY_SUBSCRIPTION_RESOURCE_ACTION,
+	SUBSCRIPTION_MODIFY_INVOICE_RESOURCE_ACTION,
+	SubscriptionModifyType,
 	SubscriptionPhase,
 	SUBSCRIPTION_PRORATION_BEHAVIOR,
 	SUBSCRIPTION_CANCELLATION_TYPE,
@@ -208,6 +212,77 @@ export interface ExecuteSubscriptionChangeResponse {
 	message: string;
 }
 
+// =============================================================================
+// SUBSCRIPTION MID-CYCLE MODIFICATION (inheritance / quantity_change)
+// POST /subscriptions/:id/modify/preview | /modify/execute
+// Enums live in @/models/Subscription; re-exported here for dto module consumers.
+// =============================================================================
+
+export type { SubscriptionModifyType } from '@/models';
+export {
+	SUBSCRIPTION_MODIFY_TYPE,
+	SUBSCRIPTION_MODIFY_LINE_ITEM_ACTION,
+	SUBSCRIPTION_MODIFY_SUBSCRIPTION_RESOURCE_ACTION,
+	SUBSCRIPTION_MODIFY_INVOICE_RESOURCE_ACTION,
+} from '@/models';
+
+/** Payload when type is `inheritance` — add inherited child subscriptions. */
+export interface SubModifyInheritanceRequest {
+	external_customer_ids_to_inherit_subscription?: string[];
+}
+
+/** Single line item quantity change; quantity is a decimal string in API JSON. */
+export interface LineItemQuantityChange {
+	id: string;
+	quantity: string;
+	/** ISO 8601; omit for effective immediately. */
+	effective_date?: string;
+}
+
+/** Payload when type is `quantity_change`. */
+export interface SubModifyQuantityChangeRequest {
+	line_items: LineItemQuantityChange[];
+}
+
+/** Unified body for modify preview and execute. */
+export interface ExecuteSubscriptionModifyRequest {
+	type: SubscriptionModifyType;
+	inheritance_params?: SubModifyInheritanceRequest;
+	quantity_change_params?: SubModifyQuantityChangeRequest;
+}
+
+export interface ChangedLineItem {
+	id: string;
+	price_id: string;
+	quantity: string;
+	start_date?: string;
+	end_date?: string;
+	change_action: SUBSCRIPTION_MODIFY_LINE_ITEM_ACTION;
+}
+
+export interface ChangedSubscription {
+	id: string;
+	action: SUBSCRIPTION_MODIFY_SUBSCRIPTION_RESOURCE_ACTION;
+	status: SUBSCRIPTION_STATUS;
+}
+
+export interface ChangedInvoice {
+	id: string;
+	action: SUBSCRIPTION_MODIFY_INVOICE_RESOURCE_ACTION;
+	status: string;
+}
+
+export interface ChangedResources {
+	line_items?: ChangedLineItem[];
+	subscriptions?: ChangedSubscription[];
+	invoices?: ChangedInvoice[];
+}
+
+export interface SubscriptionModifyResponse {
+	subscription?: SubscriptionResponse | null;
+	changed_resources: ChangedResources;
+}
+
 export interface ScheduleUpdateBillingPeriodRequest {
 	billing_period_start: string;
 	billing_period_end: string;
@@ -253,7 +328,6 @@ export interface CreateSubscriptionRequest {
 	end_date?: string;
 	trial_start?: string;
 	trial_end?: string;
-	billing_cadence: BILLING_CADENCE;
 	billing_period: BILLING_PERIOD;
 	billing_period_count?: number;
 	metadata?: Metadata;
@@ -270,6 +344,8 @@ export interface CreateSubscriptionRequest {
 
 	// Tax rate overrides
 	tax_rate_overrides?: TaxRateOverride[];
+
+	billing_anchor?: Date;
 
 	// Coupons
 	coupons?: string[];
@@ -524,7 +600,6 @@ export interface SubscriptionPriceCreateRequest {
 	billing_period: BILLING_PERIOD;
 	billing_period_count?: number;
 	billing_model: BILLING_MODEL;
-	billing_cadence: BILLING_CADENCE;
 	invoice_cadence: INVOICE_CADENCE;
 	amount?: string;
 	meter_id?: string;
@@ -593,7 +668,7 @@ export interface SubscriptionLineItemResponse {
 	subscription_id: string;
 	customer_id: string;
 	price_id: string;
-	price_type: string;
+	price_type: PRICE_TYPE;
 	currency: string;
 	billing_period: string;
 	invoice_cadence: string;
@@ -612,6 +687,12 @@ export interface SubscriptionLineItemResponse {
 	metadata: Metadata;
 	created_at: string;
 	updated_at: string;
+	// Commitment fields
+	commitment_quantity?: string;
+	commitment_type?: string;
+	commitment_overage_factor?: string;
+	commitment_true_up_enabled?: boolean;
+	commitment_windowed?: boolean;
 }
 
 // =============================================================================

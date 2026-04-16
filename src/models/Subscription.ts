@@ -4,7 +4,15 @@ import { BILLING_PERIOD } from '@/constants/constants';
 import { Plan } from './Plan';
 import { CreditGrant } from './CreditGrant';
 import { BaseModel, ENTITY_STATUS, Metadata } from './base';
-import { Price } from './Price';
+import { Price, PRICE_TYPE } from './Price';
+
+export interface SubscriptionCommitmentInfo {
+	enable_true_up?: boolean;
+	commitment_amount?: number;
+	overage_factor?: number;
+	commitment_duration?: string;
+	currency?: string;
+}
 
 export interface LineItem extends BaseModel {
 	readonly subscription_id: string;
@@ -18,7 +26,7 @@ export interface LineItem extends BaseModel {
 	readonly display_name: string;
 	readonly plan_display_name: string;
 	readonly meter_display_name: string;
-	readonly price_type: string;
+	readonly price_type: PRICE_TYPE;
 	readonly billing_period: string;
 	readonly currency: string;
 	readonly quantity: number;
@@ -31,6 +39,12 @@ export interface LineItem extends BaseModel {
 	readonly entity_type?: SUBSCRIPTION_LINE_ITEM_ENTITY_TYPE;
 	/** ID of the source entity (plan_id, addon_id, or subscription_id) */
 	readonly entity_id?: string;
+	// Commitment fields
+	readonly commitment_quantity?: string;
+	readonly commitment_type?: string;
+	readonly commitment_overage_factor?: string;
+	readonly commitment_true_up_enabled?: boolean;
+	readonly commitment_windowed?: boolean;
 }
 
 export interface Pause extends BaseModel {
@@ -76,7 +90,7 @@ export interface Subscription extends BaseModel {
 	readonly cancel_at_period_end: boolean;
 	readonly trial_start: string;
 	readonly trial_end: string;
-	readonly billing_cadence: BILLING_CADENCE;
+	readonly billing_cadence?: BILLING_CADENCE;
 	readonly billing_period: BILLING_PERIOD;
 	readonly billing_period_count: number;
 	readonly invoice_cadence: INVOICE_CADENCE;
@@ -94,6 +108,8 @@ export interface Subscription extends BaseModel {
 	credit_grants?: CreditGrant[];
 	commitment_amount?: number;
 	overage_factor?: number;
+	enable_true_up?: boolean;
+
 	/** Payment terms (e.g. 15 NET, 30 NET) used to compute invoice due date from period end */
 	readonly payment_terms?: string;
 
@@ -195,6 +211,40 @@ export enum SUBSCRIPTION_TYPE {
 	STANDALONE = 'standalone',
 	PARENT = 'parent',
 	INHERITED = 'inherited',
+}
+
+/** Mid-cycle modify API: `POST /subscriptions/:id/modify/preview|execute` body `type`. */
+export enum SUBSCRIPTION_MODIFY_TYPE {
+	INHERITANCE = 'inheritance',
+	QUANTITY_CHANGE = 'quantity_change',
+}
+
+/** Type alias for DTO fields that carry {@link SUBSCRIPTION_MODIFY_TYPE}. */
+export type SubscriptionModifyType = SUBSCRIPTION_MODIFY_TYPE;
+
+/** How a line item was affected (response `changed_resources.line_items`). */
+export enum SUBSCRIPTION_MODIFY_LINE_ITEM_ACTION {
+	CREATED = 'created',
+	UPDATED = 'updated',
+	ENDED = 'ended',
+}
+
+/** How a subscription row was affected (response `changed_resources.subscriptions`). */
+export enum SUBSCRIPTION_MODIFY_SUBSCRIPTION_RESOURCE_ACTION {
+	CREATED = 'created',
+	UPDATED = 'updated',
+}
+
+/** How an invoice row was affected (response `changed_resources.invoices`). */
+export enum SUBSCRIPTION_MODIFY_INVOICE_RESOURCE_ACTION {
+	CREATED = 'created',
+	WALLET_CREDIT = 'wallet_credit',
+}
+
+/** Subscription edit page: which line-item editor is open. */
+export enum SUBSCRIPTION_LINE_ITEM_EDIT_MODE {
+	USAGE_OVERRIDE = 'usage_override',
+	FIXED_QUANTITY = 'fixed_quantity',
 }
 
 // PaymentBehavior determines how subscription payments are handled
