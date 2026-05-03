@@ -84,6 +84,7 @@ const filterOptions: FilterField[] = [
 			{ value: SUBSCRIPTION_STATUS.CANCELLED, label: 'Cancelled' },
 			{ value: SUBSCRIPTION_STATUS.INCOMPLETE, label: 'Incomplete' },
 			{ value: SUBSCRIPTION_STATUS.TRIALING, label: 'Trialing' },
+			{ value: SUBSCRIPTION_STATUS.DRAFT, label: 'Draft' },
 		],
 	},
 	{

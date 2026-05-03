@@ -45,8 +45,7 @@ export enum APPLICATION_STATUS {
 	PENDING = 'pending',
 
 	/**
-	 * Skipped is the status of a credit grant application that has been skipped
-	 * This is set when subscription has been paused so we skip giving credits for that period
+	 * Skipped is the status of a credit grant application that has been skipped (e.g. eligibility rules for that period)
 	 */
 	SKIPPED = 'skipped',
 

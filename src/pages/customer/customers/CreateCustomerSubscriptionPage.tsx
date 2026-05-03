@@ -101,6 +101,10 @@ export type SubscriptionFormState = {
 	addedSubscriptionLineItems: AddedSubscriptionLineItem[];
 	/** Customers that should receive inherited child subscriptions (serialized as external IDs on create) */
 	inheritanceCustomers: Customer[];
+	/** When true, create payload sends `trial_period_days`; when false, omit (inherit from plan). */
+	subscriptionTrialEnabled: boolean;
+	/** Day count when `subscriptionTrialEnabled`; empty when disabled. */
+	subscriptionTrialPeriodDays: string;
 };
 
 const usePlans = () => {
@@ -267,6 +271,8 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 		hasModifiedPlanCreditGrants: false,
 		addedSubscriptionLineItems: [],
 		inheritanceCustomers: [],
+		subscriptionTrialEnabled: false,
+		subscriptionTrialPeriodDays: '',
 	});
 
 	const { data: plans, isLoading: plansLoading, isError: plansError } = usePlans();
@@ -334,6 +340,13 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 				creditGrants: (subscriptionData.details.credit_grants || []).map(creditGrantToInternal),
 				enable_true_up: (subscriptionData.details as any).enable_true_up ?? false,
 				inheritanceCustomers: [],
+				...(() => {
+					const tpd = (subscriptionData.details as { trial_period_days?: number | null }).trial_period_days;
+					if (typeof tpd === 'number' && tpd > 0) {
+						return { subscriptionTrialEnabled: true, subscriptionTrialPeriodDays: String(tpd) };
+					}
+					return { subscriptionTrialEnabled: false, subscriptionTrialPeriodDays: '' };
+				})(),
 			}));
 		}
 	}, [subscriptionData, customerId]);
@@ -423,6 +436,17 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 			return 'Please save your changes before submitting.';
 		}
 
+		if (subscriptionState.subscriptionTrialEnabled) {
+			const raw = subscriptionState.subscriptionTrialPeriodDays.trim();
+			if (!raw) {
+				return 'Trial period is required when a custom trial is enabled.';
+			}
+			const n = parseInt(raw, 10);
+			if (!Number.isFinite(n) || n < 1) {
+				return 'Enter a valid trial length in days (at least 1).';
+			}
+		}
+
 		return null;
 	};
 
@@ -459,6 +483,8 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 			addedSubscriptionLineItems,
 			customerId: formCustomerId,
 			inheritanceCustomers,
+			subscriptionTrialEnabled,
+			subscriptionTrialPeriodDays,
 		} = subscriptionState;
 
 		let finalStartDate: string;
@@ -537,6 +563,9 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 				? invoicingCustomer.external_id.trim()
 				: undefined;
 
+		const trial_period_days: number | undefined =
+			subscriptionTrialEnabled && subscriptionTrialPeriodDays.trim() !== '' ? parseInt(subscriptionTrialPeriodDays.trim(), 10) : undefined;
+
 		return {
 			billingPeriod,
 			selectedPlan,
@@ -561,6 +590,7 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 			sanitizedAddons,
 			addedSubscriptionLineItems,
 			inheritanceExternalIds,
+			trial_period_days,
 		};
 	};
 
@@ -652,6 +682,7 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 					? sanitized.addedSubscriptionLineItems.map(({ tempId: _tempId, ...req }) => req)
 					: undefined,
 			inheritance: Object.keys(inheritancePayload).length > 0 ? inheritancePayload : undefined,
+			...(sanitized.trial_period_days !== undefined ? { trial_period_days: sanitized.trial_period_days } : {}),
 		};
 
 		setIsDraft(isDraftParam);

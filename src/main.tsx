@@ -5,8 +5,11 @@ import PosthogProvider from './core/services/posthog/PosthogProvider.tsx';
 import SentryProvider from './core/services/sentry/SentryProvider.tsx';
 import VercelSpeedInsights from './core/services/vercel/vercel.tsx';
 import { NODE_ENV, NodeEnv } from './types/index.ts';
+import { registerWebMCPTools } from './agent/webmcp.ts';
 
 const isProd = NODE_ENV === NodeEnv.PROD;
+
+registerWebMCPTools();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
 	<div>

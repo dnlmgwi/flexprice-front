@@ -1,4 +1,4 @@
-import { Select, FormHeader, Label, DecimalUsageInput, DatePicker } from '@/components/atoms';
+import { Select, FormHeader, Label, DecimalUsageInput, DatePicker, Input } from '@/components/atoms';
 import { Switch } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { toSentenceCase } from '@/utils/common/helper_functions';
@@ -877,6 +877,7 @@ const SubscriptionForm = ({
 							disabled={isDisabled}
 						/>
 					</div>
+
 					<div className='space-y-3 md:col-span-2'>
 						<InheritedCustomersTable
 							data={state.inheritanceCustomers}
@@ -885,14 +886,56 @@ const SubscriptionForm = ({
 							subscriberCustomerId={state.customerId}
 						/>
 					</div>
-					<div className='flex flex-col space-y-2'>
-						<Label label='Proration behavior' />
-						<Switch
-							checked={state.prorationCreateLineItems}
-							onCheckedChange={(checked) => setState((prev) => ({ ...prev, prorationCreateLineItems: checked }))}
-							disabled={isDisabled}
-						/>
+
+					<div className='rounded-xl border border-zinc-200/90 bg-white shadow-sm overflow-hidden'>
+						<div className='flex flex-row items-center justify-between gap-4 px-4 py-3 border-b border-zinc-100/90'>
+							<label
+								htmlFor='subscription-billing-proration'
+								className='text-sm font-medium text-zinc-900 leading-snug cursor-default block min-w-0 flex-1 pr-3'>
+								Proration behavior
+							</label>
+							<Switch
+								id='subscription-billing-proration'
+								className='shrink-0'
+								checked={state.prorationCreateLineItems}
+								onCheckedChange={(checked) => setState((prev) => ({ ...prev, prorationCreateLineItems: checked }))}
+								disabled={isDisabled}
+							/>
+						</div>
+
+						<div className='flex flex-row items-center justify-between gap-4 px-4 py-3 bg-zinc-50/40'>
+							<label
+								htmlFor='subscription-billing-trial'
+								className='text-sm font-medium text-zinc-900 leading-snug cursor-pointer block min-w-0 flex-1 pr-3'>
+								Free trial
+							</label>
+							<Switch
+								id='subscription-billing-trial'
+								className='shrink-0'
+								checked={state.subscriptionTrialEnabled}
+								onCheckedChange={(value) => {
+									setState((prev) => ({
+										...prev,
+										subscriptionTrialEnabled: value,
+										subscriptionTrialPeriodDays: value ? prev.subscriptionTrialPeriodDays : '',
+									}));
+								}}
+								disabled={isDisabled || isLoadingPlanDetails}
+							/>
+						</div>
 					</div>
+					{state.subscriptionTrialEnabled && (
+						<Input
+							id='subscription-billing-trial-days'
+							label='Trial Period Days'
+							variant='number'
+							value={state.subscriptionTrialPeriodDays}
+							onChange={(value) => setState((prev) => ({ ...prev, subscriptionTrialPeriodDays: value }))}
+							suffix='days'
+							placeholder='14'
+							disabled={isDisabled || isLoadingPlanDetails}
+						/>
+					)}
 				</div>
 			)}
 		</div>

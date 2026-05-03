@@ -31,7 +31,7 @@ export interface Price extends BaseModel {
 	readonly transform_quantity: TransformQuantity | null;
 	readonly meter?: Meter;
 	readonly invoice_cadence: INVOICE_CADENCE;
-	readonly trial_period: number;
+	readonly trial_period_days?: number;
 	readonly start_date?: string;
 	readonly end_date?: string;
 	readonly metadata: Metadata | null;

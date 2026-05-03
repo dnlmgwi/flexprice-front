@@ -7,7 +7,16 @@ import type { ExecuteSubscriptionModifyRequest, SubscriptionModifyResponse } fro
 
 type ApiErrorShape = { error?: { message?: string } };
 
-export function useSubscriptionQuantityModify(subscriptionId: string | undefined) {
+export interface UseSubscriptionQuantityModifyResult {
+	preview: (payload: ExecuteSubscriptionModifyRequest) => Promise<SubscriptionModifyResponse>;
+	execute: (payload: ExecuteSubscriptionModifyRequest) => Promise<SubscriptionModifyResponse>;
+	previewResult: SubscriptionModifyResponse | null;
+	reset: () => void;
+	isPreviewPending: boolean;
+	isExecutePending: boolean;
+}
+
+export function useSubscriptionQuantityModify(subscriptionId: string | undefined): UseSubscriptionQuantityModifyResult {
 	const {
 		mutateAsync: preview,
 		reset: resetPreview,
@@ -40,7 +49,7 @@ export function useSubscriptionQuantityModify(subscriptionId: string | undefined
 			toast.success('Quantity updated successfully');
 			resetPreview();
 			if (subscriptionId) {
-				await refetchQueries(['subscriptionDetailsEditPage', subscriptionId]);
+				await refetchQueries(['subscriptionEdit', subscriptionId]);
 			}
 			await refetchQueries(['subscriptions']);
 		},

@@ -71,7 +71,7 @@ export interface CreatePriceRequest {
 	filter_values?: Record<string, string[]>;
 	lookup_key?: string;
 	invoice_cadence: INVOICE_CADENCE;
-	trial_period?: number;
+	trial_period_days?: number;
 	description?: string;
 	display_name?: string;
 	metadata?: Metadata;

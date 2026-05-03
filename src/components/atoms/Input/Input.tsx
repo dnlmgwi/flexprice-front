@@ -190,7 +190,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 						disabled={disabled}
 						placeholder={placeholder}
 						className={cn(
-							'peer relative flex-1 bg-transparent outline-none ring-0 focus:outline-none w-full placeholder:text-start placeholder:items-start flex flex-col',
+							'peer relative min-h-0 min-w-0 flex-1 bg-transparent outline-none ring-0 focus:outline-none placeholder:text-muted-foreground',
 							disabled && 'text-zinc-500',
 							className,
 						)}
@@ -204,7 +204,11 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 							}
 						}}
 					/>
-					{suffix && <div className='ml-2 text-muted-foreground'>{suffix}</div>}
+					{suffix && (
+						<div className='ml-2 flex shrink-0 items-center self-stretch pl-2 text-sm tabular-nums leading-none text-muted-foreground'>
+							{suffix}
+						</div>
+					)}
 				</div>
 				{/* Description */}
 				{description && <p className={cn('text-sm', disabled ? 'text-zinc-500' : 'text-muted-foreground')}>{description}</p>}

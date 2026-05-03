@@ -19,6 +19,12 @@ interface Props {
 	commitmentInfo?: SubscriptionCommitmentInfo;
 	/** When true, edit/terminate actions are disabled (e.g. inherited subscription). */
 	readOnly?: boolean;
+	/** Optional map `subscription_phase_id` → label (enables Phase column). */
+	phaseLabelsById?: Record<string, string>;
+	/** When false, empty data does not render the built-in NoDataCard (parent handles empty UX). */
+	showNoDataCard?: boolean;
+	/** Subtitle when `showNoDataCard` renders (e.g. filtered empty vs no rows). */
+	noDataSubtitle?: string;
 }
 
 interface LineItemWithStatus extends LineItem {
@@ -236,6 +242,9 @@ const SubscriptionLineItemTable: FC<Props> = ({
 	hideCardWrapper = false,
 	commitmentInfo,
 	readOnly = false,
+	phaseLabelsById,
+	showNoDataCard = true,
+	noDataSubtitle,
 }) => {
 	const [showTerminateModal, setShowTerminateModal] = useState(false);
 	const [selectedLineItem, setSelectedLineItem] = useState<LineItem | null>(null);
@@ -323,6 +332,18 @@ const SubscriptionLineItemTable: FC<Props> = ({
 					</div>
 				),
 			},
+			...(phaseLabelsById && Object.keys(phaseLabelsById).length > 0
+				? [
+						{
+							title: 'Phase',
+							render: (row: LineItemWithStatus) => (
+								<span className='text-sm text-gray-700'>
+									{(row.subscription_phase_id && phaseLabelsById[row.subscription_phase_id]) ?? '—'}
+								</span>
+							),
+						},
+					]
+				: []),
 			{
 				title: 'Price Type',
 				render: (row) => <span>{getPriceTypeLabel(row.price_type)}</span>,
@@ -409,7 +430,7 @@ const SubscriptionLineItemTable: FC<Props> = ({
 				},
 			},
 		],
-		[hasMultipleEntityTypes, commitmentInfo, handleEditClick, handleTerminateClick, readOnly],
+		[hasMultipleEntityTypes, commitmentInfo, handleEditClick, handleTerminateClick, readOnly, phaseLabelsById],
 	);
 
 	if (isLoading) {
@@ -438,9 +459,11 @@ const SubscriptionLineItemTable: FC<Props> = ({
 		);
 	}
 
-	if (!processedLineItems || processedLineItems.length === 0) {
-		return <NoDataCard title='Charges' subtitle='No charges found for this subscription' />;
+	if ((!processedLineItems || processedLineItems.length === 0) && showNoDataCard) {
+		return <NoDataCard title='Charges' subtitle={noDataSubtitle ?? 'No charges found for this subscription'} />;
 	}
+
+	const isEmpty = !processedLineItems || processedLineItems.length === 0;
 
 	return (
 		<>
@@ -456,8 +479,8 @@ const SubscriptionLineItemTable: FC<Props> = ({
 
 			{hideCardWrapper ? (
 				<FlexpriceTable
-					showEmptyRow={false}
-					data={processedLineItems}
+					showEmptyRow={isEmpty}
+					data={processedLineItems ?? []}
 					columns={columns}
 					variant='no-bordered'
 					tableClassName='table-fixed'
@@ -466,8 +489,8 @@ const SubscriptionLineItemTable: FC<Props> = ({
 				<Card variant='notched'>
 					<CardHeader title='Charges' />
 					<FlexpriceTable
-						showEmptyRow={false}
-						data={processedLineItems}
+						showEmptyRow={isEmpty}
+						data={processedLineItems ?? []}
 						columns={columns}
 						variant='no-bordered'
 						tableClassName='table-fixed'

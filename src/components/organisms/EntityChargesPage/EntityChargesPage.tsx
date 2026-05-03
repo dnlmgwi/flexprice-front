@@ -256,7 +256,7 @@ const EntityChargesPage: React.FC<EntityChargesPageProps> = ({ entityType, entit
 				filter_values: price.filter_values || undefined,
 				lookup_key: price.lookup_key,
 				invoice_cadence: price.invoice_cadence || INVOICE_CADENCE.ARREAR,
-				trial_period: price.trial_period,
+				trial_period_days: price.trial_period_days,
 				description: price.description,
 				display_name: price.display_name,
 				metadata: price.metadata || undefined,

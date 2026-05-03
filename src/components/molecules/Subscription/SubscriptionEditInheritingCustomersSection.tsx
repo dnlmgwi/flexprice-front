@@ -21,8 +21,6 @@ export interface SubscriptionEditInheritingCustomersSectionProps {
 	isAddDisabled?: boolean;
 }
 
-const INHERITED_QUERY_KEY_FRAGMENT = 'inheritedSubscriptions';
-
 const SubscriptionEditInheritingCustomersSection: FC<SubscriptionEditInheritingCustomersSectionProps> = ({
 	parentSubscriptionId,
 	parentCustomerId,
@@ -38,11 +36,10 @@ const SubscriptionEditInheritingCustomersSection: FC<SubscriptionEditInheritingC
 		mutationFn: async (childSubscriptionId: string) => {
 			return await SubscriptionApi.updateSubscription(childSubscriptionId, { parent_subscription_id: null });
 		},
-		onSuccess: () => {
+		onSuccess: async () => {
 			toast.success('Inheritance removed');
 			setChildToDetach(null);
-			void refetchQueries([INHERITED_QUERY_KEY_FRAGMENT, parentSubscriptionId, 'plan+customer']);
-			void refetchQueries(['subscriptionDetailsEditPage', parentSubscriptionId]);
+			void refetchQueries(['subscriptionEdit', parentSubscriptionId]);
 		},
 		onError: (error: { error?: { message?: string } }) => {
 			toast.error(error?.error?.message || 'Failed to remove inheritance');
@@ -85,8 +82,7 @@ const SubscriptionEditInheritingCustomersSection: FC<SubscriptionEditInheritingC
 			toast.success('Customers added to inherit');
 			setAddDialogOpen(false);
 			setSelectedCustomers([]);
-			void refetchQueries([INHERITED_QUERY_KEY_FRAGMENT, parentSubscriptionId, 'plan+customer']);
-			void refetchQueries(['subscriptionDetailsEditPage', parentSubscriptionId]);
+			void refetchQueries(['subscriptionEdit', parentSubscriptionId]);
 		},
 		onError: (error: unknown) => {
 			const e = error as { error?: { message?: string }; message?: string } | undefined;

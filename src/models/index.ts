@@ -126,7 +126,6 @@ export type {
 	SubscriptionUpdatePeriodResponseItem,
 	Charge,
 	Schedule,
-	Pause,
 	LineItem as SubscriptionLineItem,
 	SubscriptionModifyType,
 } from './Subscription';
@@ -147,9 +146,6 @@ export {
 	PAYMENT_TERMS,
 	SUBSCRIPTION_LINE_ITEM_ENTITY_TYPE,
 	SUBSCRIPTION_CHANGE_TYPE,
-	PauseStatus,
-	SUBSCRIPTION_PAUSE_MODE,
-	RESUME_MODE,
 	SUBSCRIPTION_PRORATION_ACTION,
 	SUBSCRIPTION_PRORATION_STRATEGY,
 } from './Subscription';

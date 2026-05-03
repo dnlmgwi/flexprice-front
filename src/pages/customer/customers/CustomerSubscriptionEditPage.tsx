@@ -8,6 +8,7 @@ import {
 	SubscriptionEditInheritingCustomersSection,
 	SubscriptionLineItemQuantityModifyDialog,
 } from '@/components/molecules';
+import { Skeleton } from '@/components/ui';
 import { useBreadcrumbsStore } from '@/store/useBreadcrumbsStore';
 import CustomerApi from '@/api/CustomerApi';
 import SubscriptionApi from '@/api/SubscriptionApi';
@@ -35,10 +36,12 @@ import { ExtendedPriceOverride } from '@/utils/common/price_override_helpers';
 import { convertPriceOverrideToLineItemUpdate } from '@/utils/subscription/priceOverrideToLineItemUpdate';
 import { isInheritedSubscription } from '@/utils/subscription/isInheritedSubscription';
 import { getPriceTypeFromLineItem, lineItemToPrice } from '@/utils/subscription/lineItemToPrice';
-import { useSubscriptionLineItemsGrouped } from '@/hooks/useSubscriptionLineItemsGrouped';
 import { RouteNames } from '@/core/routes/Routes';
 import { refetchQueries } from '@/core/services/tanstack/ReactQueryProvider';
-import { ENTITY_STATUS, CreditGrant } from '@/models';
+import { ENTITY_STATUS, CreditGrant, CREDIT_GRANT_SCOPE } from '@/models';
+import { useSubscriptionEditCoreQuery } from '@/hooks/useSubscriptionEditCoreQuery';
+import { subscriptionEditInheritedQueryKey, subscriptionEditScopeQueryKey } from '@/utils/subscription/subscriptionEditQueryKeys';
+import type { CreateCreditGrantRequest } from '@/types/dto/CreditGrant';
 
 type EditingLineItemState =
 	| { mode: SUBSCRIPTION_LINE_ITEM_EDIT_MODE.USAGE_OVERRIDE; lineItem: LineItem }
@@ -66,30 +69,37 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 
 	const { updateBreadcrumb } = useBreadcrumbsStore();
 
-	const {
-		data: subscriptionDetails,
-		isLoading: isSubscriptionDetailsLoading,
-		isError: isSubscriptionDetailsError,
-	} = useQuery({
-		queryKey: ['subscriptionDetailsEditPage', subscriptionId],
-		queryFn: async () => {
-			return await SubscriptionApi.getSubscription(subscriptionId!);
-		},
-		enabled: !!subscriptionId,
-	});
+	const { data: subscriptionDetails, isLoading: isCoreLoading, isError: isCoreError } = useSubscriptionEditCoreQuery(subscriptionId);
+
+	const invalidateSubscriptionEdit = useCallback(() => {
+		if (subscriptionId) {
+			void refetchQueries(['subscriptionEdit', subscriptionId]);
+		}
+	}, [subscriptionId]);
+
+	const phasesForCharges = subscriptionDetails?.phases?.length
+		? subscriptionDetails.phases
+		: subscriptionDetails?.schedule?.phases
+			? [...subscriptionDetails.schedule.phases]
+			: undefined;
 
 	const { data: customer } = useQuery({
-		queryKey: ['fetchCustomerDetailsEditPage', subscriptionDetails?.customer_id],
-		queryFn: async () => await CustomerApi.getCustomerById(subscriptionDetails?.customer_id ?? ''),
-		enabled: !!subscriptionDetails?.customer_id && !!subscriptionDetails?.customer_id,
+		queryKey: subscriptionId
+			? [...subscriptionEditScopeQueryKey(subscriptionId), 'customer']
+			: ['subscriptionEdit', 'disabled', 'customer'],
+		queryFn: async () => await CustomerApi.getCustomerById(subscriptionDetails!.customer_id),
+		enabled: !!(subscriptionDetails?.customer_id && subscriptionId),
 	});
 
 	const { data: creditGrants } = useQuery({
-		queryKey: ['creditGrantsEditPage', subscriptionId],
+		queryKey: subscriptionId
+			? [...subscriptionEditScopeQueryKey(subscriptionId), 'creditGrants']
+			: ['subscriptionEdit', 'disabled', 'creditGrants'],
 		queryFn: async () => {
 			return await CreditGrantApi.list({
 				subscription_ids: [subscriptionId!],
 				status: ENTITY_STATUS.PUBLISHED,
+				scope: CREDIT_GRANT_SCOPE.SUBSCRIPTION,
 			});
 		},
 		enabled:
@@ -100,7 +110,7 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 	});
 
 	const { data: inheritedSubscriptionsData, isLoading: isInheritedSubscriptionsLoading } = useQuery({
-		queryKey: ['inheritedSubscriptions', subscriptionId, 'plan+customer'],
+		queryKey: subscriptionId ? subscriptionEditInheritedQueryKey(subscriptionId) : ['subscriptionEdit', 'no-inherit'],
 		queryFn: async () =>
 			SubscriptionApi.searchSubscriptions({
 				filters: [
@@ -130,7 +140,7 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 		},
 		onSuccess: () => {
 			toast.success('Line item updated successfully');
-			refetchQueries(['subscriptionDetailsEditPage', subscriptionId!]);
+			invalidateSubscriptionEdit();
 		},
 		onError: (error: { error?: { message?: string } }) => {
 			toast.error(error?.error?.message || 'Failed to update line item');
@@ -147,7 +157,7 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 		},
 		onSuccess: () => {
 			toast.success('Line item terminated successfully');
-			refetchQueries(['subscriptionDetailsEditPage', subscriptionId!]);
+			invalidateSubscriptionEdit();
 		},
 		onError: (error: { error?: { message?: string } }) => {
 			toast.error(error?.error?.message || 'Failed to terminate line item');
@@ -160,7 +170,7 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 		},
 		onSuccess: () => {
 			toast.success('Charge added successfully');
-			refetchQueries(['subscriptionDetailsEditPage', subscriptionId!]);
+			invalidateSubscriptionEdit();
 			setIsAddChargeDialogOpen(false);
 		},
 		onError: (error: { error?: { message?: string } }) => {
@@ -174,7 +184,7 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 		},
 		onSuccess: () => {
 			toast.success('Subscription updated successfully');
-			refetchQueries(['subscriptionDetailsEditPage', subscriptionId!]);
+			invalidateSubscriptionEdit();
 			refetchQueries(['subscriptions']);
 			setUpdateSubscriptionDrawerOpen(false);
 		},
@@ -184,13 +194,12 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 	});
 
 	const { mutate: createCreditGrant } = useMutation({
-		mutationFn: async (data: any) => {
+		mutationFn: async (data: CreateCreditGrantRequest) => {
 			return await CreditGrantApi.create(data);
 		},
 		onSuccess: () => {
 			toast.success('Credit grant created successfully');
-			refetchQueries(['creditGrantsEditPage', subscriptionId!]);
-			refetchQueries(['subscriptionDetailsEditPage', subscriptionId!]);
+			invalidateSubscriptionEdit();
 			setIsAddCreditGrantModalOpen(false);
 		},
 		onError: (error: { error?: { message?: string } }) => {
@@ -205,8 +214,7 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 		},
 		onSuccess: () => {
 			toast.success('Credit grant deleted successfully');
-			refetchQueries(['creditGrantsEditPage', subscriptionId!]);
-			refetchQueries(['subscriptionDetailsEditPage', subscriptionId!]);
+			invalidateSubscriptionEdit();
 			setCreditGrantToCancel(null);
 		},
 		onError: (error: { error?: { message?: string } }) => {
@@ -224,7 +232,11 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 		}
 	}, [subscriptionDetails, updateBreadcrumb, customer, subscriptionId]);
 
-	const { groupedLineItems, phaseDetails } = useSubscriptionLineItemsGrouped(subscriptionDetails ?? undefined);
+	useEffect(() => {
+		if (isCoreError) {
+			toast.error('Error loading subscription data');
+		}
+	}, [isCoreError]);
 
 	const handleEditLineItem = useCallback((lineItem: LineItem) => {
 		const priceType = getPriceTypeFromLineItem(lineItem);
@@ -262,7 +274,7 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 
 	const handleCreateCreditGrant = useCallback(
 		(data: unknown) => {
-			createCreditGrant(data);
+			createCreditGrant(data as CreateCreditGrantRequest);
 		},
 		[createCreditGrant],
 	);
@@ -296,127 +308,141 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 		[createLineItem],
 	);
 
-	if (isSubscriptionDetailsLoading) {
-		return <Loader />;
-	}
-
-	if (isSubscriptionDetailsError) {
-		toast.error('Error loading subscription data');
+	if (!subscriptionId) {
 		return null;
 	}
 
-	if (!subscriptionDetails) {
-		toast.error('No subscription data available');
+	if (isCoreError) {
 		return null;
 	}
 
-	const subscriptionReadOnly = isInheritedSubscription(subscriptionDetails);
+	const subscriptionReadOnly = subscriptionDetails ? isInheritedSubscription(subscriptionDetails) : false;
 
 	return (
 		<Page documentTitle='Edit Subscription' heading='Edit Subscription'>
 			<div className='space-y-6'>
-				<SubscriptionEditDetailsHeader
-					subscription={subscriptionDetails}
-					subscriptionId={subscriptionId!}
-					onUpdate={updateSubscription}
-					isUpdating={isUpdatingSubscription}
-					updateDrawerOpen={updateSubscriptionDrawerOpen}
-					onUpdateDrawerOpenChange={setUpdateSubscriptionDrawerOpen}
-				/>
-				<Spacer height={16} />
+				{isCoreLoading && !subscriptionDetails ? (
+					<>
+						<Skeleton className='h-8 w-full max-w-xl' />
+						<Skeleton className='h-40 w-full' />
+						<Skeleton className='h-6 w-48' />
+					</>
+				) : subscriptionDetails ? (
+					<>
+						<SubscriptionEditDetailsHeader
+							subscription={subscriptionDetails}
+							subscriptionId={subscriptionId}
+							onUpdate={updateSubscription}
+							isUpdating={isUpdatingSubscription}
+							updateDrawerOpen={updateSubscriptionDrawerOpen}
+							onUpdateDrawerOpenChange={setUpdateSubscriptionDrawerOpen}
+						/>
+						<Spacer height={16} />
 
-				{showInheritingCustomersSection && (
-					<SubscriptionEditInheritingCustomersSection
-						parentSubscriptionId={subscriptionId!}
-						parentCustomerId={subscriptionDetails.customer_id}
-						inheritingSubscriptions={inheritedSubscriptionRows}
-						isListLoading={isInheritedSubscriptionsLoading}
-						isAddDisabled={
-							subscriptionReadOnly ||
-							subscriptionDetails.subscription_status === SUBSCRIPTION_STATUS.CANCELLED ||
-							subscriptionDetails.subscription_status === SUBSCRIPTION_STATUS.TRIALING
-						}
-					/>
+						{showInheritingCustomersSection && (
+							<SubscriptionEditInheritingCustomersSection
+								parentSubscriptionId={subscriptionId}
+								parentCustomerId={subscriptionDetails.customer_id}
+								inheritingSubscriptions={inheritedSubscriptionRows}
+								isListLoading={isInheritedSubscriptionsLoading}
+								isAddDisabled={
+									subscriptionReadOnly ||
+									subscriptionDetails.subscription_status === SUBSCRIPTION_STATUS.CANCELLED ||
+									subscriptionDetails.subscription_status === SUBSCRIPTION_STATUS.TRIALING
+								}
+							/>
+						)}
+
+						<SubscriptionEditChargesSection
+							subscriptionId={subscriptionId}
+							customerId={subscriptionDetails.customer_id}
+							currentPeriodStart={subscriptionDetails.current_period_start}
+							phases={phasesForCharges}
+							isLoading={isCoreLoading}
+							onEditLineItem={handleEditLineItem}
+							onTerminateLineItem={handleTerminateLineItem}
+							onAddCharge={() => setIsAddChargeDialogOpen(true)}
+							isAddChargeDisabled={
+								subscriptionDetails?.subscription_status === SUBSCRIPTION_STATUS.CANCELLED ||
+								subscriptionDetails?.subscription_status === SUBSCRIPTION_STATUS.TRIALING
+							}
+							readOnly={subscriptionReadOnly}
+							commitmentInfo={{
+								enable_true_up: subscriptionDetails?.enable_true_up,
+								commitment_amount: subscriptionDetails?.commitment_amount,
+								overage_factor: subscriptionDetails?.overage_factor,
+								commitment_duration: subscriptionDetails?.commitment_duration,
+								currency: subscriptionDetails?.currency,
+							}}
+						/>
+
+						<SubscriptionEditCreditGrantsSection
+							creditGrants={creditGrants?.items ?? []}
+							isAddDisabled={
+								subscriptionDetails?.subscription_status === SUBSCRIPTION_STATUS.CANCELLED ||
+								subscriptionDetails?.subscription_status === SUBSCRIPTION_STATUS.TRIALING
+							}
+							readOnly={subscriptionReadOnly}
+							onAddClick={() => setIsAddCreditGrantModalOpen(true)}
+							onRequestCancel={handleCancelCreditGrant}
+							subscriptionId={subscriptionId}
+							subscriptionStartDate={subscriptionDetails?.start_date}
+							subscriptionCurrentPeriodEnd={subscriptionDetails?.current_period_end}
+							onSaveCreditGrant={handleCreateCreditGrant}
+							isAddModalOpen={isAddCreditGrantModalOpen}
+							onAddModalOpenChange={setIsAddCreditGrantModalOpen}
+							creditGrantToCancel={creditGrantToCancel}
+							onConfirmCancelCreditGrant={handleConfirmCancelCreditGrant}
+							onCloseCancelModal={handleCloseCancelModal}
+						/>
+
+						<SubscriptionEntitlementsSection subscriptionId={subscriptionId} readOnly={subscriptionReadOnly} />
+
+						<SubscriptionAddonsSection
+							subscriptionId={subscriptionId}
+							readOnly={subscriptionReadOnly}
+							subscriptionBillingPeriod={subscriptionDetails.billing_period}
+							subscriptionCurrency={subscriptionDetails.currency}
+							subscriptionCurrentPeriodStart={subscriptionDetails.current_period_start}
+							subscriptionCurrentPeriodEnd={subscriptionDetails.current_period_end}
+						/>
+
+						{editingLineItem?.mode === SUBSCRIPTION_LINE_ITEM_EDIT_MODE.USAGE_OVERRIDE && (
+							<PriceOverrideDialog
+								isOpen={true}
+								onOpenChange={(open: boolean) => !open && setEditingLineItem(null)}
+								price={lineItemToPrice(editingLineItem.lineItem)}
+								onPriceOverride={handlePriceOverride}
+								onResetOverride={handleResetOverride}
+								overriddenPrices={overriddenPrices}
+								showEffectiveFrom={true}
+							/>
+						)}
+
+						{editingLineItem?.mode === SUBSCRIPTION_LINE_ITEM_EDIT_MODE.FIXED_QUANTITY && subscriptionDetails && (
+							<SubscriptionLineItemQuantityModifyDialog
+								isOpen={true}
+								onOpenChange={(open: boolean) => !open && setEditingLineItem(null)}
+								subscriptionId={subscriptionId}
+								lineItem={editingLineItem.lineItem}
+								currentPeriodStart={subscriptionDetails.current_period_start}
+								currentPeriodEnd={subscriptionDetails.current_period_end}
+							/>
+						)}
+
+						<AddSubscriptionChargeDialog
+							isOpen={isAddChargeDialogOpen}
+							onOpenChange={setIsAddChargeDialogOpen}
+							onSave={handleAddChargeSave}
+							defaultCurrency={subscriptionDetails?.currency}
+							defaultBillingPeriod={subscriptionDetails?.billing_period}
+							defaultStartDate={subscriptionDetails?.start_date}
+							subscriptionId={subscriptionId}
+						/>
+					</>
+				) : (
+					<Loader />
 				)}
-
-				<SubscriptionEditChargesSection
-					groupedLineItems={groupedLineItems}
-					phaseDetails={phaseDetails}
-					allLineItems={subscriptionDetails?.line_items ?? []}
-					isLoading={isSubscriptionDetailsLoading}
-					onEditLineItem={handleEditLineItem}
-					onTerminateLineItem={handleTerminateLineItem}
-					onAddCharge={() => setIsAddChargeDialogOpen(true)}
-					isAddChargeDisabled={
-						subscriptionDetails?.subscription_status === SUBSCRIPTION_STATUS.CANCELLED ||
-						subscriptionDetails?.subscription_status === SUBSCRIPTION_STATUS.TRIALING
-					}
-					readOnly={subscriptionReadOnly}
-					commitmentInfo={{
-						enable_true_up: subscriptionDetails?.enable_true_up,
-						commitment_amount: subscriptionDetails?.commitment_amount,
-						overage_factor: subscriptionDetails?.overage_factor,
-						commitment_duration: subscriptionDetails?.commitment_duration,
-						currency: subscriptionDetails?.currency,
-					}}
-				/>
-
-				<SubscriptionEditCreditGrantsSection
-					creditGrants={creditGrants?.items ?? []}
-					isAddDisabled={
-						subscriptionDetails?.subscription_status === SUBSCRIPTION_STATUS.CANCELLED ||
-						subscriptionDetails?.subscription_status === SUBSCRIPTION_STATUS.TRIALING
-					}
-					readOnly={subscriptionReadOnly}
-					onAddClick={() => setIsAddCreditGrantModalOpen(true)}
-					onRequestCancel={handleCancelCreditGrant}
-					subscriptionId={subscriptionId!}
-					subscriptionStartDate={subscriptionDetails?.start_date}
-					subscriptionCurrentPeriodEnd={subscriptionDetails?.current_period_end}
-					onSaveCreditGrant={handleCreateCreditGrant}
-					isAddModalOpen={isAddCreditGrantModalOpen}
-					onAddModalOpenChange={setIsAddCreditGrantModalOpen}
-					creditGrantToCancel={creditGrantToCancel}
-					onConfirmCancelCreditGrant={handleConfirmCancelCreditGrant}
-					onCloseCancelModal={handleCloseCancelModal}
-				/>
-
-				{subscriptionId && <SubscriptionEntitlementsSection subscriptionId={subscriptionId} readOnly={subscriptionReadOnly} />}
-
-				{subscriptionId && <SubscriptionAddonsSection subscriptionId={subscriptionId} readOnly={subscriptionReadOnly} />}
-
-				{editingLineItem?.mode === SUBSCRIPTION_LINE_ITEM_EDIT_MODE.USAGE_OVERRIDE && (
-					<PriceOverrideDialog
-						isOpen={true}
-						onOpenChange={(open: boolean) => !open && setEditingLineItem(null)}
-						price={lineItemToPrice(editingLineItem.lineItem)}
-						onPriceOverride={handlePriceOverride}
-						onResetOverride={handleResetOverride}
-						overriddenPrices={overriddenPrices}
-						showEffectiveFrom={true}
-					/>
-				)}
-
-				{editingLineItem?.mode === SUBSCRIPTION_LINE_ITEM_EDIT_MODE.FIXED_QUANTITY && subscriptionId && subscriptionDetails && (
-					<SubscriptionLineItemQuantityModifyDialog
-						isOpen={true}
-						onOpenChange={(open: boolean) => !open && setEditingLineItem(null)}
-						subscriptionId={subscriptionId}
-						lineItem={editingLineItem.lineItem}
-						currentPeriodStart={subscriptionDetails.current_period_start}
-						currentPeriodEnd={subscriptionDetails.current_period_end}
-					/>
-				)}
-
-				<AddSubscriptionChargeDialog
-					isOpen={isAddChargeDialogOpen}
-					onOpenChange={setIsAddChargeDialogOpen}
-					onSave={handleAddChargeSave}
-					defaultCurrency={subscriptionDetails?.currency}
-					defaultBillingPeriod={subscriptionDetails?.billing_period}
-					defaultStartDate={subscriptionDetails?.start_date}
-					subscriptionId={subscriptionId}
-				/>
 
 				<Spacer className='!h-20' />
 			</div>

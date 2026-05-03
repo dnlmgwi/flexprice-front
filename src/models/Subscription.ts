@@ -47,24 +47,6 @@ export interface LineItem extends BaseModel {
 	readonly commitment_windowed?: boolean;
 }
 
-export interface Pause extends BaseModel {
-	readonly id: string;
-	readonly subscription_id: string;
-	readonly environment_id: string;
-	readonly tenant_id: string;
-	readonly pause_start: string;
-	readonly pause_end: string;
-	readonly pause_status: PauseStatus;
-	readonly pause_mode: SUBSCRIPTION_PAUSE_MODE;
-	readonly resume_mode: RESUME_MODE;
-	readonly reason: string;
-	readonly original_period_start: string;
-	readonly original_period_end: string;
-	readonly resumed_at: string;
-	readonly metadata: Metadata;
-	readonly status: ENTITY_STATUS;
-}
-
 export interface Subscription extends BaseModel {
 	readonly id: string;
 	readonly lookup_key: string;
@@ -90,19 +72,17 @@ export interface Subscription extends BaseModel {
 	readonly cancel_at_period_end: boolean;
 	readonly trial_start: string;
 	readonly trial_end: string;
+	readonly trial_period_days?: number | null;
 	readonly billing_cadence?: BILLING_CADENCE;
 	readonly billing_period: BILLING_PERIOD;
 	readonly billing_period_count: number;
 	readonly invoice_cadence: INVOICE_CADENCE;
 	readonly version: number;
-	readonly active_pause_id: string;
-	readonly pause_status: PauseStatus;
 	readonly metadata: Metadata;
 	readonly customer: Customer;
 	readonly billing_cycle: BILLING_CYCLE;
 	readonly line_items: LineItem[];
 	readonly plan: Plan;
-	readonly pauses: Pause[];
 
 	// experimental fields
 	credit_grants?: CreditGrant[];
@@ -289,32 +269,6 @@ export enum SUBSCRIPTION_CHANGE_TYPE {
 	UPGRADE = 'upgrade',
 	DOWNGRADE = 'downgrade',
 	LATERAL = 'lateral',
-}
-
-// PauseStatus represents the pause state of a subscription
-export enum PauseStatus {
-	// PauseStatusNone indicates the subscription is not paused
-	PauseStatusNone = 'none',
-	// PauseStatusActive indicates the subscription is currently paused
-	PauseStatusActive = 'active',
-	// PauseStatusScheduled indicates the subscription is scheduled to be paused
-	PauseStatusScheduled = 'scheduled',
-	// PauseStatusCompleted indicates the pause has been completed (subscription resumed)
-	PauseStatusCompleted = 'completed',
-	// PauseStatusCancelled indicates the pause was cancelled
-	PauseStatusCancelled = 'cancelled',
-}
-
-export enum SUBSCRIPTION_PAUSE_MODE {
-	IMMEDIATE = 'immediate',
-	SCHEDULED = 'scheduled',
-	PERIOD_END = 'period_end',
-}
-
-export enum RESUME_MODE {
-	IMMEDIATE = 'immediate',
-	SCHEDULED = 'scheduled',
-	AUTO = 'auto',
 }
 
 /**

@@ -149,10 +149,6 @@ export type { GetAllSecretKeysResponse, CreateSecretKeyPayload, CreateSecretKeyR
 export type {
 	GetSubscriptionDetailsPayload,
 	GetSubscriptionPreviewResponse,
-	PauseSubscriptionPayload,
-	ResumeSubscriptionPayload,
-	SubscriptionPauseResponse,
-	SubscriptionResumeResponse,
 	CreateSubscriptionRequest,
 	SubscriptionInheritanceConfig,
 	UpdateSubscriptionRequest,
@@ -170,6 +166,9 @@ export type {
 	ChangedInvoice,
 	ChangedResources,
 	SubscriptionModifyResponse,
+	SubscriptionLineItemFilter,
+	ListSubscriptionLineItemsResponse,
+	SubscriptionLineItemListItem,
 } from './Subscription';
 
 export type { SubscriptionModifyType } from '@/models';

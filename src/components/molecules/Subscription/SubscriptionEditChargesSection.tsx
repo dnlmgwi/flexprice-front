@@ -1,36 +1,47 @@
-import { FC } from 'react';
-import { Card, AddButton, NoDataCard } from '@/components/atoms';
+import { FC, useMemo } from 'react';
+import { Card, AddButton, NoDataCard, ShortPagination, Spacer } from '@/components/atoms';
 import SubscriptionLineItemTable from '@/components/molecules/SubscriptionLineItemTable/SubscriptionLineItemTable';
-import type { LineItem, SubscriptionCommitmentInfo } from '@/models/Subscription';
+import { QueryBuilder } from '@/components/molecules/QueryBuilder';
+import type { LineItem, SubscriptionCommitmentInfo, SubscriptionPhase } from '@/models/Subscription';
 import formatDate from '@/utils/common/format_date';
-import type { GroupedLineItems } from '@/hooks/useSubscriptionLineItemsGrouped';
-import type { PhaseDetail } from '@/hooks/useSubscriptionLineItemsGrouped';
+import { useQuery } from '@tanstack/react-query';
+import SubscriptionApi from '@/api/SubscriptionApi';
+import { EXPAND } from '@/models';
+import usePagination, { PAGINATION_PREFIX } from '@/hooks/usePagination';
+import useFilterSorting from '@/hooks/useFilterSorting';
+import { usePaginationReset } from '@/hooks/usePaginationReset';
+import { subscriptionEditLineItemsQueryKey } from '@/utils/subscription/subscriptionEditQueryKeys';
+import { subscriptionLineItemListItemToLineItem } from '@/utils/subscription/subscriptionLineItemListItemToLineItem';
+import {
+	SUBSCRIPTION_EDIT_LINE_ITEM_FILTER_OPTIONS,
+	SUBSCRIPTION_EDIT_LINE_ITEM_SORT_OPTIONS,
+} from '@/utils/subscription/subscriptionEditLineItemsUserQuery';
 
 export type { SubscriptionCommitmentInfo };
 
-/** Subscription edit page: charges (line items) with and without phase. */
+const LINE_ITEMS_PAGINATION_PREFIX = PAGINATION_PREFIX.SUBSCRIPTION_LINE_ITEMS;
+
 export interface SubscriptionEditChargesSectionProps {
-	groupedLineItems: GroupedLineItems;
-	phaseDetails: Record<string, PhaseDetail>;
-	allLineItems: LineItem[];
-	isLoading: boolean;
+	subscriptionId: string;
+	customerId: string;
+	currentPeriodStart: string;
+	/** Phase metadata from subscription core (optional Phase column when present). */
+	phases?: SubscriptionPhase[] | null;
+	isLoading?: boolean;
 	onEditLineItem: (lineItem: LineItem) => void;
 	onTerminateLineItem: (lineItemId: string, endDate?: string) => void;
-	/** When provided, shows Add charge button next to Charges header. */
 	onAddCharge?: () => void;
-	/** Disable Add charge button (e.g. when subscription is cancelled/trialing). */
 	isAddChargeDisabled?: boolean;
-	/** When true, line item actions and add charge are disabled (e.g. inherited subscription). */
 	readOnly?: boolean;
-	/** Subscription-level commitment info to show on usage line items. */
 	commitmentInfo?: SubscriptionCommitmentInfo;
 }
 
 const SubscriptionEditChargesSection: FC<SubscriptionEditChargesSectionProps> = ({
-	groupedLineItems,
-	phaseDetails,
-	allLineItems,
-	isLoading,
+	subscriptionId,
+	customerId,
+	currentPeriodStart,
+	phases,
+	isLoading: isParentLoading = false,
 	onEditLineItem,
 	onTerminateLineItem,
 	onAddCharge,
@@ -38,99 +49,99 @@ const SubscriptionEditChargesSection: FC<SubscriptionEditChargesSectionProps> = 
 	readOnly = false,
 	commitmentInfo,
 }) => {
-	const addDisabled = isAddChargeDisabled || readOnly;
-	const hasWithoutPhase = groupedLineItems.withoutPhase.length > 0;
-	const phaseIds = Object.keys(groupedLineItems.byPhase);
-	const hasPhases = phaseIds.length > 0;
-	const isEmpty = !hasWithoutPhase && !hasPhases;
-
-	const sortedPhaseEntries = [...phaseIds].sort((phaseIdA, phaseIdB) => {
-		const startDateA = phaseDetails[phaseIdA]?.startDate;
-		const startDateB = phaseDetails[phaseIdB]?.startDate;
-		if (!startDateA && !startDateB) return 0;
-		if (!startDateA) return 1;
-		if (!startDateB) return -1;
-		return new Date(startDateA).getTime() - new Date(startDateB).getTime();
+	const { filters, sorts, setFilters, setSorts, sanitizedFilters, sanitizedSorts } = useFilterSorting({
+		debounceTime: 300,
 	});
 
-	const chargesHeader = (count: number) => (
-		<div className='flex items-center justify-between gap-2 mb-4'>
-			<div className='flex items-center gap-2'>
-				<h3 className='text-lg font-semibold text-gray-900'>Charges</h3>
-				<span className='text-sm text-gray-500'>({count} items)</span>
-			</div>
-			{onAddCharge && <AddButton onClick={onAddCharge} disabled={addDisabled} />}
-		</div>
-	);
+	const { limit, offset, page, reset } = usePagination({
+		initialLimit: 10,
+		prefix: LINE_ITEMS_PAGINATION_PREFIX,
+	});
+
+	usePaginationReset(reset, sanitizedFilters, sanitizedSorts);
+
+	const { data: lineItemsResponse, isLoading: isLineItemsQueryLoading } = useQuery({
+		queryKey: subscriptionEditLineItemsQueryKey(
+			subscriptionId,
+			customerId,
+			currentPeriodStart,
+			page,
+			limit,
+			sanitizedFilters,
+			sanitizedSorts,
+		),
+		queryFn: async () =>
+			SubscriptionApi.searchSubscriptionLineItems({
+				subscription_ids: [subscriptionId],
+				customer_ids: [customerId],
+				current_period_start: currentPeriodStart,
+				active_filter: true,
+				limit,
+				offset,
+				expand: EXPAND.PRICES,
+				filters: sanitizedFilters.length ? sanitizedFilters : undefined,
+				sort: sanitizedSorts.length ? sanitizedSorts : undefined,
+			}),
+		enabled: !!subscriptionId && !!customerId && !!currentPeriodStart,
+	});
+
+	const lineItems = useMemo(() => (lineItemsResponse?.items ?? []).map(subscriptionLineItemListItemToLineItem), [lineItemsResponse?.items]);
+
+	const totalLineItems = lineItemsResponse?.pagination?.total ?? 0;
+	const hasActiveFilters = sanitizedFilters.length > 0 || sanitizedSorts.length > 0;
+
+	const phaseLabelsById = useMemo((): Record<string, string> | undefined => {
+		if (!phases?.length) return undefined;
+		const sorted = [...phases].sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+		return Object.fromEntries(
+			sorted.map((phase, index) => {
+				const start = phase.start_date ? formatDate(phase.start_date) : 'N/A';
+				const end = phase.end_date ? formatDate(phase.end_date) : 'Forever';
+				return [phase.id, `Phase ${index + 1} (${start} → ${end})`];
+			}),
+		);
+	}, [phases]);
+
+	const addDisabled = isAddChargeDisabled || readOnly;
+	const isLoading = isParentLoading || isLineItemsQueryLoading;
+	const isEmpty = !isLoading && totalLineItems === 0 && !hasActiveFilters;
+
+	if (isEmpty && onAddCharge) {
+		return (
+			<NoDataCard
+				title='Charges'
+				subtitle='No charges found for this subscription yet'
+				cta={<AddButton onClick={onAddCharge} disabled={addDisabled} />}
+			/>
+		);
+	}
 
 	return (
-		<>
-			{hasWithoutPhase && (
-				<Card variant='notched'>
-					{chargesHeader(groupedLineItems.withoutPhase.length)}
-					<SubscriptionLineItemTable
-						data={groupedLineItems.withoutPhase}
-						isLoading={isLoading}
-						onEdit={onEditLineItem}
-						onTerminate={onTerminateLineItem}
-						hideCardWrapper={true}
-						commitmentInfo={commitmentInfo}
-						readOnly={readOnly}
-					/>
-				</Card>
-			)}
-
-			{isEmpty && onAddCharge && (
-				<NoDataCard
-					title='Charges'
-					subtitle='No charges found for this subscription yet'
-					cta={<AddButton onClick={onAddCharge} disabled={addDisabled} />}
-				/>
-			)}
-
-			{isEmpty && !onAddCharge && (
-				<SubscriptionLineItemTable
-					data={allLineItems}
-					isLoading={isLoading}
-					onEdit={onEditLineItem}
-					onTerminate={onTerminateLineItem}
-					commitmentInfo={commitmentInfo}
-					readOnly={readOnly}
-				/>
-			)}
-
-			{hasPhases && (
-				<div className='space-y-6'>
-					{sortedPhaseEntries.map((phaseId, index) => {
-						const lineItems = groupedLineItems.byPhase[phaseId];
-						const phase = phaseDetails[phaseId];
-						const phaseNumber = index + 1;
-						const startDate = phase?.startDate ? formatDate(phase.startDate) : 'N/A';
-						const endDate = phase?.endDate ? formatDate(phase.endDate) : 'Forever';
-
-						return (
-							<Card key={phaseId} variant='notched'>
-								<div className='mb-4 pb-4 border-b border-gray-200'>
-									<h3 className='text-base font-semibold text-gray-900'>Phase {phaseNumber}</h3>
-									<p className='text-sm text-gray-600 mt-1'>
-										{startDate} → {endDate}
-									</p>
-								</div>
-								<SubscriptionLineItemTable
-									data={lineItems}
-									isLoading={isLoading}
-									onEdit={onEditLineItem}
-									onTerminate={onTerminateLineItem}
-									hideCardWrapper={true}
-									commitmentInfo={commitmentInfo}
-									readOnly={readOnly}
-								/>
-							</Card>
-						);
-					})}
-				</div>
-			)}
-		</>
+		<Card variant='notched'>
+			<QueryBuilder
+				filterOptions={SUBSCRIPTION_EDIT_LINE_ITEM_FILTER_OPTIONS}
+				filters={filters}
+				onFilterChange={setFilters}
+				sortOptions={SUBSCRIPTION_EDIT_LINE_ITEM_SORT_OPTIONS}
+				selectedSorts={sorts}
+				onSortChange={setSorts}
+				debounceTime={300}>
+				{onAddCharge ? <AddButton onClick={onAddCharge} disabled={addDisabled} /> : null}
+			</QueryBuilder>
+			<SubscriptionLineItemTable
+				data={lineItems}
+				isLoading={isLoading}
+				onEdit={onEditLineItem}
+				onTerminate={onTerminateLineItem}
+				hideCardWrapper={true}
+				commitmentInfo={commitmentInfo}
+				readOnly={readOnly}
+				phaseLabelsById={phaseLabelsById}
+				showNoDataCard={false}
+			/>
+			<Spacer className='!h-2' />
+			<ShortPagination totalItems={totalLineItems} pageSize={limit} unit='charges' prefix={LINE_ITEMS_PAGINATION_PREFIX} />
+		</Card>
 	);
 };
 

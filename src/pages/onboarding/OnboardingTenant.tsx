@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Button, Input, Select, SelectOption } from '@/components/atoms';
+import { Button, Input, Loader, Select, SelectOption } from '@/components/atoms';
 import { RouteNames } from '@/core/routes/Routes';
 import TenantApi from '@/api/TenantApi';
 import OnboardingApi from '@/api/OnboardingApi';
-import { TenantMetadataKey } from '@/models/Tenant';
+import { TenantMetadataKey, type Tenant } from '@/models';
 import useUser from '@/hooks/useUser';
 import { refetchQueries } from '@/core/services/tanstack/ReactQueryProvider';
 import { ServerError } from '@/core/axios/types';
@@ -64,7 +64,7 @@ const roleOptions: SelectOption[] = [
 
 const OnboardingTenant = () => {
 	const navigate = useNavigate();
-	const { user } = useUser();
+	const { user, loading: userLoading } = useUser();
 	const [orgName, setOrgName] = useState('');
 	const [orgUrl, setOrgUrl] = useState('');
 	const [role, setRole] = useState('');
@@ -80,17 +80,28 @@ const OnboardingTenant = () => {
 		pricingType?: string;
 	}>({});
 
-	const { data: tenant } = useQuery({
-		queryKey: ['tenant'],
+	const { data: tenant, isLoading: isTenantLoading } = useQuery({
+		queryKey: ['tenant-onboarding'],
 		queryFn: () => TenantApi.getTenantById(user?.tenant?.id ?? ''),
 		enabled: !!user?.tenant?.id,
 	});
+
+	const showFullScreenLoader = userLoading || (!!user?.tenant?.id && isTenantLoading);
 
 	useEffect(() => {
 		if (!tenant) return;
 		const url = (tenant.metadata as Record<string, string> | undefined)?.onboarding_org_url;
 		if (url) setOrgUrl((u) => u || url);
 	}, [tenant]);
+
+	useEffect(() => {
+		const completed =
+			(user?.tenant as Tenant | undefined)?.metadata?.[TenantMetadataKey.ONBOARDING_COMPLETED] === 'true' ||
+			(tenant as Tenant | undefined)?.metadata?.[TenantMetadataKey.ONBOARDING_COMPLETED] === 'true';
+		if (completed) {
+			navigate(RouteNames.homeDashboard, { replace: true });
+		}
+	}, [user?.tenant, tenant, navigate]);
 
 	const isValidTeamSize = Boolean(teamSize);
 	const isValidReferral = Boolean(referralSource);
@@ -125,7 +136,7 @@ const OnboardingTenant = () => {
 			});
 		},
 		onSuccess: async () => {
-			await refetchQueries(['user', 'tenant']);
+			await Promise.all([refetchQueries('user'), refetchQueries('tenant-onboarding'), refetchQueries('tenant')]);
 			toast.success("You're all set!");
 			navigate(RouteNames.homeDashboard, { replace: true });
 		},
@@ -181,9 +192,32 @@ const OnboardingTenant = () => {
 		completeOnboarding();
 	};
 
+	const onboardingBackdropClass = 'fixed inset-0 z-50 flex min-h-screen items-center justify-center overflow-y-auto p-4';
+
+	if (showFullScreenLoader) {
+		return (
+			<div
+				className={onboardingBackdropClass}
+				style={{
+					backgroundImage: `url('/assets/onboarding.png')`,
+					backgroundSize: 'cover',
+					backgroundPosition: 'center',
+				}}>
+				<div className='absolute inset-0 bg-white/30' aria-hidden />
+				<div
+					className='relative flex min-h-[min(100vh,100dvh)] w-full flex-1 items-center justify-center'
+					role='status'
+					aria-busy='true'
+					aria-label='Loading workspace'>
+					<Loader />
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<div
-			className='fixed inset-0 z-50 flex min-h-screen items-center justify-center overflow-y-auto p-4'
+			className={onboardingBackdropClass}
 			style={{
 				backgroundImage: `url('/assets/onboarding.png')`,
 				backgroundSize: 'cover',

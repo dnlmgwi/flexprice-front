@@ -152,8 +152,8 @@ const RecurringChargesForm = ({
 			newErrors.invoice_cadence = 'Invoice Cadence is required';
 		}
 
-		if (localPrice.isTrialPeriod && !localPrice.trial_period) {
-			newErrors.trial_period = 'Trial Period is required';
+		if (localPrice.isTrialPeriod && !localPrice.trial_period_days) {
+			newErrors.trial_period_days = 'Trial Period is required';
 		}
 
 		setErrors(newErrors);
@@ -324,7 +324,7 @@ const RecurringChargesForm = ({
 				onChange={(value) => {
 					setLocalPrice({ ...localPrice, invoice_cadence: value as INVOICE_CADENCE });
 					if (value === BILLING_CADENCE.ONETIME) {
-						setLocalPrice({ ...localPrice, isTrialPeriod: false, trial_period: 0 });
+						setLocalPrice({ ...localPrice, isTrialPeriod: false, trial_period_days: 0 });
 					}
 				}}
 				error={errors.invoice_cadence}
@@ -370,10 +370,10 @@ const RecurringChargesForm = ({
 					<Spacer height={'8px'} />
 					<Input
 						variant='number'
-						error={errors.trial_period}
-						value={localPrice.trial_period}
+						error={errors.trial_period_days}
+						value={localPrice.trial_period_days}
 						onChange={(value) => {
-							setLocalPrice({ ...localPrice, trial_period: Number(value) });
+							setLocalPrice({ ...localPrice, trial_period_days: Number(value) });
 						}}
 						suffix='days'
 						placeholder='Number of trial days'

@@ -68,6 +68,10 @@ export function internalPriceToSubscriptionLineItemRequest(
 		price.amount = partial.amount;
 	}
 
+	if (partial.trial_period_days !== undefined) {
+		price.trial_period_days = partial.trial_period_days;
+	}
+
 	return {
 		price,
 		quantity: quantity ?? partial.min_quantity ?? 1,
@@ -134,15 +138,25 @@ export function subscriptionLineItemToInternalPrice(
 		return { ...usageBase, amount: p.amount };
 	}
 
+	const trialFields =
+		p.trial_period_days !== undefined
+			? {
+					trial_period_days: p.trial_period_days,
+					isTrialPeriod: p.trial_period_days > 0,
+				}
+			: {};
+
 	if (isCustom && p.price_unit_config) {
 		return {
 			...base,
+			...trialFields,
 			price_unit_config: p.price_unit_config,
 			amount: p.price_unit_config.amount ?? p.amount,
 		};
 	}
 	return {
 		...base,
+		...trialFields,
 		amount: p.amount,
 		currency: (p as { currency?: string }).currency ?? defaults?.currency ?? 'USD',
 	};

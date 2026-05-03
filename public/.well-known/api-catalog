@@ -1,0 +1,16 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://api.cloud.flexprice.io",
+      "service-desc": [
+        { "href": "https://api.cloud.flexprice.io/swagger/doc.json", "type": "application/json" }
+      ],
+      "service-doc": [
+        { "href": "https://docs.flexprice.io", "type": "text/html" }
+      ],
+      "status": [
+        { "href": "https://api.cloud.flexprice.io/health", "type": "application/json" }
+      ]
+    }
+  ]
+}

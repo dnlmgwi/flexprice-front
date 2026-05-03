@@ -1,5 +1,5 @@
 import { FilterField, FilterCondition, SortOption, SortDirection } from '@/types/common/QueryBuilder';
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, type ReactNode } from 'react';
 import { debounce } from 'lodash';
 import { FilterPopover, SortDropdown } from '@/components/molecules';
 
@@ -27,6 +27,9 @@ interface Props {
 	};
 	/** Called when "Reset filters" is clicked in the popover (optional; property filters are cleared automatically when propertyFiltersConfig is provided). */
 	onFilterPopoverReset?: () => void;
+
+	/** Trailing toolbar content (e.g. count label, CTAs); rendered flush right on wide layouts. */
+	children?: ReactNode;
 }
 
 const QueryBuilder = ({
@@ -37,6 +40,7 @@ const QueryBuilder = ({
 	onSortChange = () => {},
 	selectedSorts = [],
 	debounceTime = 500,
+	children,
 }: Props) => {
 	const [filter, setFilter] = useState<FilterCondition[]>(filters);
 	const [localSorts, setLocalSorts] = useState<SortOption[]>(selectedSorts);
@@ -118,15 +122,19 @@ const QueryBuilder = ({
 		}));
 	}, [localSorts]);
 
-	return (
-		<div className='flex flex-wrap items-center gap-3 mb-5'>
-			{/* Filter options */}
-			{fields.length > 0 && <FilterPopover fields={fields} value={filter} onChange={handleFilterChange} />}
+	const hasTrailing = children != null && children !== false;
 
-			{/* Sort options */}
-			{sortOptions.length > 0 && selectedSorts && (
-				<SortDropdown options={sortOptions} value={sortDropdownValue} onChange={handleSortChange} />
-			)}
+	return (
+		<div className={hasTrailing ? 'flex flex-wrap items-center justify-between gap-3 mb-5' : 'flex flex-wrap items-center gap-3 mb-5'}>
+			<div className='flex flex-wrap items-center gap-3 min-w-0'>
+				{fields.length > 0 && <FilterPopover fields={fields} value={filter} onChange={handleFilterChange} />}
+
+				{sortOptions.length > 0 && selectedSorts && (
+					<SortDropdown options={sortOptions} value={sortDropdownValue} onChange={handleSortChange} />
+				)}
+			</div>
+
+			{hasTrailing ? <div className='flex flex-wrap items-center gap-3 shrink-0'>{children}</div> : null}
 		</div>
 	);
 };

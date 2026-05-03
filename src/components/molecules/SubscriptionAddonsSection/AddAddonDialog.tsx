@@ -25,13 +25,15 @@ interface Props {
 	subscriptionId: string;
 	billingPeriod?: BILLING_PERIOD;
 	currency?: string;
+	/** When provided, skips GET subscription for defaults (subscription edit passes from core fetch). */
+	currentPeriodEndIso?: string;
 }
 
 interface FormErrors {
 	addon_id?: string;
 }
 
-const AddAddonDialog: React.FC<Props> = ({ isOpen, onOpenChange, subscriptionId, billingPeriod, currency }) => {
+const AddAddonDialog: React.FC<Props> = ({ isOpen, onOpenChange, subscriptionId, billingPeriod, currency, currentPeriodEndIso }) => {
 	const [formData, setFormData] = useState<Partial<AddAddonRequest>>({});
 	const [errors, setErrors] = useState<FormErrors>({});
 	const [selectedAddonDetails, setSelectedAddonDetails] = useState<AddonResponse | null>(null);
@@ -43,13 +45,17 @@ const AddAddonDialog: React.FC<Props> = ({ isOpen, onOpenChange, subscriptionId,
 	const [cadence, setCadence] = useState<ADDON_CADENCE | ''>('');
 	const [prorationBehavior, setProrationBehavior] = useState<ADDON_PRORATION_BEHAVIOR | ''>('');
 
+	const shouldFetchSubscription = !!subscriptionId && isOpen && !currentPeriodEndIso;
+
 	const { data: subscriptionDetails } = useQuery({
 		queryKey: ['subscriptionDetailsForAddAddonDialog', subscriptionId],
 		queryFn: async () => {
 			return await SubscriptionApi.getSubscription(subscriptionId);
 		},
-		enabled: !!subscriptionId && isOpen,
+		enabled: shouldFetchSubscription,
 	});
+
+	const resolvedPeriodEndRaw = currentPeriodEndIso ?? (subscriptionDetails as SubscriptionResponse | undefined)?.current_period_end;
 
 	// Fetch available addons
 	const { data: addonsResponse } = useQuery({
@@ -76,11 +82,11 @@ const AddAddonDialog: React.FC<Props> = ({ isOpen, onOpenChange, subscriptionId,
 	}, [isOpen]);
 
 	const currentPeriodEndDate = useMemo(() => {
-		const raw = (subscriptionDetails as SubscriptionResponse | undefined)?.current_period_end;
+		const raw = resolvedPeriodEndRaw;
 		if (!raw) return undefined;
 		const parsed = new Date(raw);
 		return isNaN(parsed.getTime()) ? undefined : parsed;
-	}, [subscriptionDetails]);
+	}, [resolvedPeriodEndRaw]);
 
 	const applyAdvancedDefaults = useCallback(() => {
 		setCadence((prev) => (prev ? prev : ADDON_CADENCE.RECURRING));
@@ -110,7 +116,7 @@ const AddAddonDialog: React.FC<Props> = ({ isOpen, onOpenChange, subscriptionId,
 			toast.success('Addon added successfully');
 			refetchQueries(['subscriptionActiveAddons', subscriptionId]);
 			refetchQueries(['subscriptionDetails', subscriptionId]);
-			refetchQueries(['subscriptionDetailsEditPage', subscriptionId]);
+			refetchQueries(['subscriptionEdit', subscriptionId]);
 			refetchQueries(['subscriptionEntitlements', subscriptionId]);
 			setFormData({});
 			setErrors({});

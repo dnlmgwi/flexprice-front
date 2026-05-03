@@ -9,6 +9,7 @@ import SubscriptionApi from '@/api/SubscriptionApi';
 import { ADDON_ASSOCIATION_STATUS } from '@/models/AddonAssociation';
 import { AddonAssociationResponse } from '@/types/dto/Subscription';
 import { ADDON_PRORATION_BEHAVIOR } from '@/types/dto/Addon';
+import { BILLING_PERIOD } from '@/constants/constants';
 import { toSentenceCase } from '@/utils/common/helper_functions';
 import { Price, PRICE_TYPE } from '@/models/Price';
 import { getCurrentPriceAmount } from '@/utils/common/price_override_helpers';
@@ -16,11 +17,20 @@ import { getTotalPayableTextWithCoupons } from '@/utils/common/helper_functions'
 import toast from 'react-hot-toast';
 import AddAddonDialog from './AddAddonDialog';
 import { formatDateTimeWithSecondsAndTimezone } from '@/utils/common/format_date';
+import { refetchQueries } from '@/core/services/tanstack/ReactQueryProvider';
 
 interface SubscriptionAddonsSectionProps {
 	subscriptionId: string;
 	/** When true, add/remove addon actions are disabled. */
 	readOnly?: boolean;
+	/**
+	 * When all subscription context props are supplied (e.g. from subscription edit core query),
+	 * avoids an extra GET /subscriptions/:id fetch.
+	 */
+	subscriptionBillingPeriod?: BILLING_PERIOD;
+	subscriptionCurrency?: string;
+	subscriptionCurrentPeriodStart?: string;
+	subscriptionCurrentPeriodEnd?: string;
 }
 
 const formatAddonCharges = (prices: Price[] = []): string => {
@@ -130,7 +140,14 @@ const computeAssociationStatus = (association: AddonAssociationResponse): AddonS
 	return 'active';
 };
 
-const SubscriptionAddonsSection: FC<SubscriptionAddonsSectionProps> = ({ subscriptionId, readOnly = false }) => {
+const SubscriptionAddonsSection: FC<SubscriptionAddonsSectionProps> = ({
+	subscriptionId,
+	readOnly = false,
+	subscriptionBillingPeriod,
+	subscriptionCurrency,
+	subscriptionCurrentPeriodStart,
+	subscriptionCurrentPeriodEnd,
+}) => {
 	const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 	const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 	const [addonToCancel, setAddonToCancel] = useState<AddonAssociationResponse | null>(null);
@@ -139,14 +156,26 @@ const SubscriptionAddonsSection: FC<SubscriptionAddonsSectionProps> = ({ subscri
 	const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
 	const queryClient = useQueryClient();
 
-	// Fetch subscription details (for billing_period + currency context)
-	const { data: subscriptionDetails } = useQuery({
+	const subscriptionContextResolved =
+		subscriptionBillingPeriod != null &&
+		subscriptionCurrency != null &&
+		subscriptionCurrentPeriodStart != null &&
+		subscriptionCurrentPeriodEnd != null;
+
+	const { data: subscriptionDetailsFetched } = useQuery({
 		queryKey: ['subscriptionDetails', subscriptionId],
-		queryFn: async () => {
-			return await SubscriptionApi.getSubscription(subscriptionId);
-		},
-		enabled: !!subscriptionId,
+		queryFn: async () => SubscriptionApi.getSubscription(subscriptionId),
+		enabled: !!subscriptionId && !subscriptionContextResolved,
 	});
+
+	const subscriptionDetails = subscriptionContextResolved
+		? {
+				billing_period: subscriptionBillingPeriod,
+				currency: subscriptionCurrency,
+				current_period_start: subscriptionCurrentPeriodStart,
+				current_period_end: subscriptionCurrentPeriodEnd,
+			}
+		: subscriptionDetailsFetched;
 
 	// Fetch active addons (backend returns { items, pagination })
 	const {
@@ -205,8 +234,7 @@ const SubscriptionAddonsSection: FC<SubscriptionAddonsSectionProps> = ({ subscri
 		onSuccess: () => {
 			toast.success('Addon cancelled successfully');
 			queryClient.invalidateQueries({ queryKey: ['subscriptionActiveAddons', subscriptionId] });
-			queryClient.invalidateQueries({ queryKey: ['subscriptionDetails', subscriptionId] });
-			queryClient.invalidateQueries({ queryKey: ['subscriptionDetailsEditPage', subscriptionId] });
+			void refetchQueries(['subscriptionEdit', subscriptionId]);
 			queryClient.invalidateQueries({ queryKey: ['subscriptionEntitlements', subscriptionId] });
 			setIsCancelDialogOpen(false);
 			setAddonToCancel(null);
@@ -356,6 +384,7 @@ const SubscriptionAddonsSection: FC<SubscriptionAddonsSectionProps> = ({ subscri
 				subscriptionId={subscriptionId}
 				billingPeriod={subscriptionDetails?.billing_period}
 				currency={subscriptionDetails?.currency}
+				currentPeriodEndIso={subscriptionDetails?.current_period_end}
 			/>
 
 			{/* Cancel Addon Dialog */}

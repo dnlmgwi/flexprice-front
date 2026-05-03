@@ -1,5 +1,5 @@
 import { Card, FormHeader, Page, Spacer, Chip } from '@/components/atoms';
-import { SubscriptionPauseWarning, UpcomingCreditGrantApplicationsTable } from '@/components/molecules';
+import { UpcomingCreditGrantApplicationsTable } from '@/components/molecules';
 import FlexpriceTable, { ColumnData, RedirectCell } from '@/components/molecules/Table';
 import { SubscriptionPreviewLineItemTable } from '@/components/molecules/InvoiceLineItemTable';
 import SubscriptionActionButton from '@/components/organisms/Subscription/SubscriptionActionButton';
@@ -219,8 +219,6 @@ const CustomerSubscriptionDetailsPage: FC = () => {
 		toast.error('Something went wrong');
 	}
 
-	const isPaused = subscriptionDetails?.subscription_status.toUpperCase() === 'PAUSED';
-	const activePauseDetails = subscriptionDetails?.pauses?.find((pause) => pause.id === subscriptionDetails.active_pause_id);
 	// Determine if subscription is scheduled to cancel soon (within 15 days)
 	const getCancellationEffectiveDate = (): Date | null => {
 		if (!subscriptionDetails) return null;
@@ -270,14 +268,6 @@ const CustomerSubscriptionDetailsPage: FC = () => {
 
 	return (
 		<div>
-			{isPaused && activePauseDetails && (
-				<SubscriptionPauseWarning
-					pauseStartDate={activePauseDetails.pause_start}
-					pauseEndDate={activePauseDetails.pause_end}
-					resumeDate={activePauseDetails.resumed_at || activePauseDetails.pause_end}
-				/>
-			)}
-
 			<Card className='card'>
 				<div className='flex justify-between items-center'>
 					<FormHeader title='Subscription details' variant='sub-header' titleClassName='font-semibold' />

@@ -26,7 +26,7 @@ import {
 	PRICE_UNIT_TYPE,
 	INVOICE_CADENCE,
 } from '@/models';
-import { PriceUnitConfig } from '@/types/dto/Price';
+import { PriceUnitConfig, PriceResponse } from '@/types/dto/Price';
 import { BILLING_PERIOD } from '@/constants/constants';
 import { QueryFilter, TimeRangeFilter } from './base';
 import { AddAddonToSubscriptionRequest, ADDON_CADENCE, ADDON_PRORATION_BEHAVIOR } from './Addon';
@@ -111,63 +111,6 @@ export interface GetSubscriptionPreviewResponse {
 	voided_at: string;
 	total_discount: number;
 	total_tax: number;
-}
-
-export interface PauseSubscriptionPayload {
-	dry_run?: boolean;
-	metadata?: Metadata;
-	pause_days?: number;
-	pause_end?: string;
-	pause_mode?: 'immediate';
-	pause_start?: string;
-	reason?: string;
-}
-
-export interface ResumeSubscriptionPayload {
-	dry_run?: boolean;
-	metadata?: Metadata;
-	resume_mode?: 'immediate';
-}
-
-export interface SubscriptionPauseResponse {
-	created_at: string;
-	created_by: string;
-	environment_id: string;
-	id: string;
-	metadata: Metadata;
-	original_period_end: string;
-	original_period_start: string;
-	pause_end: string;
-	pause_mode: string;
-	pause_start: string;
-	pause_status: string;
-	reason: string;
-	resume_mode: string;
-	resumed_at: string;
-	status: 'published';
-	subscription_id: string;
-	tenant_id: string;
-	updated_at: string;
-	updated_by: string;
-}
-
-// Since both responses have the same structure, we can reuse the interface
-export type SubscriptionResumeResponse = SubscriptionPauseResponse;
-
-export interface SubscriptionPause {
-	id: string;
-	subscription_id: string;
-	pause_start: string;
-	pause_end: string;
-	pause_status: string;
-	pause_mode: string;
-	created_at: string;
-	updated_at: string;
-}
-
-export interface ListSubscriptionPausesResponse {
-	pauses: SubscriptionPause[];
-	total: number;
 }
 
 // Subscription Change Types
@@ -327,8 +270,11 @@ export interface CreateSubscriptionRequest {
 	lookup_key?: string;
 	start_date?: string;
 	end_date?: string;
-	trial_start?: string;
-	trial_end?: string;
+	/**
+	 * Trial length for the new subscription. `undefined`/omit = inherit from plan recurring-fixed prices
+	 * (must be uniform). `0` = explicitly no trial (overrides catalog). `>0` = override duration in days.
+	 */
+	trial_period_days?: number | null;
 	billing_period: BILLING_PERIOD;
 	billing_period_count?: number;
 	metadata?: Metadata;
@@ -608,7 +554,7 @@ export interface SubscriptionPriceCreateRequest {
 	meter_id?: string;
 	filter_values?: Record<string, string[]>;
 	lookup_key?: string;
-	trial_period?: number;
+	trial_period_days?: number;
 	description?: string;
 	metadata?: Metadata;
 	tier_mode?: TIER_MODE;
@@ -678,7 +624,7 @@ export interface SubscriptionLineItemResponse {
 	currency: string;
 	billing_period: string;
 	invoice_cadence: string;
-	trial_period?: number;
+	trial_period_days?: number;
 	price_unit_id?: string;
 	price_unit?: string;
 	entity_type: SUBSCRIPTION_LINE_ITEM_ENTITY_TYPE;
@@ -701,6 +647,40 @@ export interface SubscriptionLineItemResponse {
 	commitment_overage_factor?: string;
 	commitment_true_up_enabled?: boolean;
 	commitment_windowed?: boolean;
+}
+
+/** Line item as returned by list/search when `expand` includes related entities (e.g. `prices`). */
+export type SubscriptionLineItemListItem = SubscriptionLineItemResponse & {
+	price?: PriceResponse;
+};
+
+/**
+ * Filter for POST /subscriptions/lineitems/search.
+ * Matches backend `SubscriptionLineItemFilter`: embedded `QueryFilter` (e.g. limit, offset, expand), `TimeRangeFilter`,
+ * plus the fields below.
+ */
+export interface SubscriptionLineItemFilter extends Omit<QueryFilter, 'sort'>, TimeRangeFilter {
+	sort?: TypedBackendSort[];
+	filters?: TypedBackendFilter[];
+
+	subscription_ids?: string[];
+	customer_ids?: string[];
+	price_ids?: string[];
+	meter_ids?: string[];
+	currencies?: string[];
+	billing_periods?: string[];
+	entity_ids?: string[];
+	entity_type?: SUBSCRIPTION_LINE_ITEM_ENTITY_TYPE;
+	addon_association_ids?: string[];
+	/** Backend form/json: `active_filter` (default true when omitted). */
+	active_filter?: boolean;
+	current_period_start?: string;
+}
+
+/** Response for POST /subscriptions/lineitems/search (matches backend ListSubscriptionLineItemsResponse). */
+export interface ListSubscriptionLineItemsResponse {
+	items: SubscriptionLineItemListItem[];
+	pagination: Pagination;
 }
 
 // =============================================================================
