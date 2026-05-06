@@ -5,6 +5,7 @@ export enum SCHEDULED_ENTITY_TYPE {
 	INVOICE = 'invoice',
 	CREDIT_TOPUPS = 'credit_topups',
 	CREDIT_USAGE = 'credit_usage',
+	USAGE_ANALYTICS = 'usage_analytics',
 }
 
 export enum SCHEDULED_TASK_INTERVAL {
@@ -12,8 +13,23 @@ export enum SCHEDULED_TASK_INTERVAL {
 	DAILY = 'daily',
 }
 
+export enum EXPORT_METADATA_ENTITY_TYPE {
+	CUSTOMER = 'customer',
+	WALLET = 'wallet',
+}
+
+/** Mirrors backend allowedMetadataEntityTypes map */
+export const ALLOWED_METADATA_ENTITY_TYPES: Record<SCHEDULED_ENTITY_TYPE, EXPORT_METADATA_ENTITY_TYPE[]> = {
+	[SCHEDULED_ENTITY_TYPE.CREDIT_USAGE]: [EXPORT_METADATA_ENTITY_TYPE.CUSTOMER, EXPORT_METADATA_ENTITY_TYPE.WALLET],
+	[SCHEDULED_ENTITY_TYPE.USAGE_ANALYTICS]: [EXPORT_METADATA_ENTITY_TYPE.CUSTOMER],
+	[SCHEDULED_ENTITY_TYPE.EVENTS]: [],
+	[SCHEDULED_ENTITY_TYPE.INVOICE]: [],
+	[SCHEDULED_ENTITY_TYPE.CREDIT_TOPUPS]: [],
+};
+
 export type ScheduledEntityType = SCHEDULED_ENTITY_TYPE;
 export type ScheduledTaskInterval = SCHEDULED_TASK_INTERVAL;
+export type ExportMetadataEntityType = EXPORT_METADATA_ENTITY_TYPE;
 
 export interface ScheduledTask extends BaseModel {
 	readonly connection_id: string;
@@ -33,6 +49,11 @@ export interface ScheduledTaskJobConfig {
 	compression?: string;
 	encryption?: string;
 	max_file_size_mb?: number;
+	export_metadata_fields?: Array<{
+		entity_type: EXPORT_METADATA_ENTITY_TYPE;
+		field_key: string;
+		column_name?: string;
+	}>;
 	endpoint_url?: string;
 	use_path_style?: boolean;
 }

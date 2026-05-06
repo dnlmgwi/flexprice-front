@@ -19,7 +19,7 @@ import toast from 'react-hot-toast';
 import { RouteNames } from '@/core/routes/Routes';
 import { cn } from '@/lib/utils';
 import { getPaymentStatusChip } from '@/components/molecules/InvoiceTable/InvoiceTable';
-import { INVOICE_TYPE } from '@/models/Invoice';
+import { INVOICE_STATUS, INVOICE_TYPE } from '@/models/Invoice';
 import { getTypographyClass } from '@/lib/typography';
 import RedirectCell from '@/components/molecules/Table/RedirectCell';
 interface Props {
@@ -39,7 +39,10 @@ const CustomerInvoiceDetail: FC<Props> = ({ invoice_id, breadcrumb_index }) => {
 	const { data, isLoading, isError } = useQuery({
 		queryKey: ['fetchInvoice', invoice_id],
 		queryFn: async () => {
-			const response = await InvoiceApi.listInvoices({ invoice_ids: [invoice_id!] });
+			const response = await InvoiceApi.listInvoices({
+				invoice_ids: [invoice_id!],
+				invoice_status: Object.values(INVOICE_STATUS),
+			});
 			const invoice = response.items[0];
 			if (!invoice) throw new Error('Invoice not found');
 			return invoice;

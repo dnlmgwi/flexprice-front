@@ -1,8 +1,7 @@
 import Dialog from '@/components/atoms/Dialog/Dialog';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
-import { FaFileExcel } from 'react-icons/fa';
-import { SiAdobeacrobatreader } from 'react-icons/si';
+import { FaFileExcel, FaFilePdf } from 'react-icons/fa';
 import { FC } from 'react';
 
 export interface InvoiceDownloadFormatDialogProps {
@@ -65,7 +64,7 @@ const InvoiceDownloadFormatDialog: FC<InvoiceDownloadFormatDialogProps> = ({
 						{isPdfPending ? (
 							<Loader2 className='h-8 w-8 animate-spin text-red-600' aria-hidden />
 						) : (
-							<SiAdobeacrobatreader className='h-10 w-10 text-[#EC1C24] drop-shadow-sm' aria-hidden />
+							<FaFilePdf className='h-10 w-10 text-[#EC1C24] drop-shadow-sm' aria-hidden />
 						)}
 					</span>
 					<span className='text-sm font-medium text-zinc-900'>PDF</span>

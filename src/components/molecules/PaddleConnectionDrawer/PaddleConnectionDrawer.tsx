@@ -136,8 +136,9 @@ const PaddleConnectionDrawer: FC<PaddleConnectionDrawerProps> = ({ isOpen, onOpe
 			onSave(response);
 			onOpenChange(false);
 		},
-		onError: (error: any) => {
-			toast.error(error?.message || 'Failed to create connection');
+		onError: (error: unknown) => {
+			const message = error instanceof Error ? error.message : undefined;
+			toast.error(message || 'Failed to create connection');
 		},
 	});
 
@@ -155,8 +156,9 @@ const PaddleConnectionDrawer: FC<PaddleConnectionDrawerProps> = ({ isOpen, onOpe
 			onSave(response);
 			onOpenChange(false);
 		},
-		onError: (error: any) => {
-			toast.error(error?.message || 'Failed to update connection');
+		onError: (error: unknown) => {
+			const message = error instanceof Error ? error.message : undefined;
+			toast.error(message || 'Failed to update connection');
 		},
 	});
 
@@ -253,7 +255,7 @@ const PaddleConnectionDrawer: FC<PaddleConnectionDrawerProps> = ({ isOpen, onOpe
 						<p className='text-xs text-blue-700 mb-3'>Set up this webhook URL in your Paddle dashboard to receive event notifications:</p>
 						<div className='flex items-center gap-2 p-2 bg-white border border-blue-200 rounded-md'>
 							<code className='flex-1 text-xs text-gray-800 font-mono break-all'>{webhookUrl}</code>
-							<Button size='xs' variant='outline' onClick={handleCopyWebhookUrl} className='flex items-center gap-1'>
+							<Button type='button' size='xs' variant='outline' onClick={handleCopyWebhookUrl} className='flex items-center gap-1'>
 								{webhookCopied ? <CheckCircle className='w-3 h-3' /> : <Copy className='w-3 h-3' />}
 								{webhookCopied ? 'Copied!' : 'Copy'}
 							</Button>
@@ -286,10 +288,19 @@ const PaddleConnectionDrawer: FC<PaddleConnectionDrawerProps> = ({ isOpen, onOpe
 				<Spacer className='!h-4' />
 
 				<div className='flex gap-2'>
-					<Button variant='outline' onClick={() => onOpenChange(false)} className='flex-1' disabled={isPending}>
+					<Button type='button' variant='outline' onClick={() => onOpenChange(false)} className='flex-1' disabled={isPending}>
 						Cancel
 					</Button>
-					<Button onClick={handleSave} className='flex-1' isLoading={isPending} disabled={isPending}>
+					<Button
+						type='button'
+						onClick={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							handleSave();
+						}}
+						className='flex-1'
+						isLoading={isPending}
+						disabled={isPending}>
 						{connection ? 'Update Connection' : 'Create Connection'}
 					</Button>
 				</div>

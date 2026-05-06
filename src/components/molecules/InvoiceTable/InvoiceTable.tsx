@@ -19,8 +19,10 @@ export const getStatusChip = (status: string) => {
 			return <Chip variant='success' label='Finalized' />;
 		case INVOICE_STATUS.DRAFT:
 			return <Chip variant='default' label='Draft' />;
+		case INVOICE_STATUS.SKIPPED:
+			return <Chip variant='default' label='Skipped' />;
 		default:
-			return <Chip variant='default' label='Draft' />;
+			return <Chip variant='default' label={status || 'Unknown'} />;
 	}
 };
 

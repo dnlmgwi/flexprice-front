@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import React, { useState } from 'react';
 import { Skeleton } from '@/components/ui';
-import { Blocks, Rocket, Server, ChevronsUpDown, Plus, Copy } from 'lucide-react';
+import { Blocks, Rocket, Server, ChevronsUpDown, Plus, Copy, Pencil } from 'lucide-react';
 import { useGlobalLoading } from '@/core/services/tanstack/ReactQueryProvider';
 import useUser from '@/hooks/useUser';
 import { Select, SelectContent, useSidebar } from '@/components/ui';
@@ -14,8 +14,9 @@ import { useRestrictedEnvs, EnvRestrictionState } from '@/hooks/useRestrictedEnv
 import { Button } from '@/components/atoms';
 import EnvironmentCreator from '../EnvironmentCreator/EnvironmentCreator';
 import EnvironmentCopier from '../EnvironmentCopier/EnvironmentCopier';
+import EnvironmentEditor from '../EnvironmentEditor/EnvironmentEditor';
 import ContactUsDialog from '../ContactUsDialog/ContactUsDialog';
-import { ENVIRONMENT_TYPE } from '@/models/Environment';
+import Environment, { ENVIRONMENT_TYPE } from '@/models/Environment';
 
 interface Props {
 	disabled?: boolean;
@@ -74,6 +75,8 @@ const EnvironmentSelector: React.FC<Props> = ({ disabled = false, className }) =
 	const [isOpen, setIsOpen] = useState(false);
 	const [isCreatorOpen, setIsCreatorOpen] = useState(false);
 	const [isCopierOpen, setIsCopierOpen] = useState(false);
+	const [isEditorOpen, setIsEditorOpen] = useState(false);
+	const [editingEnvironment, setEditingEnvironment] = useState<Environment | null>(null);
 	const [isSuspendedDialogOpen, setIsSuspendedDialogOpen] = useState(false);
 
 	if (loading)
@@ -92,6 +95,14 @@ const EnvironmentSelector: React.FC<Props> = ({ disabled = false, className }) =
 		label: env.name,
 		prefixIcon: getEnvironmentIcon(env.type),
 	}));
+
+	const handleEditClick = (env: Environment, e: React.MouseEvent | React.PointerEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setIsOpen(false);
+		setEditingEnvironment(env);
+		setIsEditorOpen(true);
+	};
 
 	const handleChange = async (environmentId: string) => {
 		const restriction = getRestriction(environmentId, user?.tenant?.id);
@@ -159,16 +170,29 @@ const EnvironmentSelector: React.FC<Props> = ({ disabled = false, className }) =
 					</div>
 				</SelectTrigger>
 				<SelectContent className='mt-2 w-[calc(var(--radix-select-trigger-width)+8px)] max-w-[calc(var(--radix-select-trigger-width)+8px)]'>
-					{options.map((option) => (
-						<SelectItem key={option.value} value={option.value}>
-							<div className='flex items-center gap-2 text-muted-foreground min-w-0'>
-								{option.prefixIcon}
-								<span className='block flex-1 min-w-0 truncate pr-2 max-w-[calc(var(--radix-select-trigger-width)-78px)]'>
-									{option.label}
-								</span>
+					{options.map((option, idx) => {
+						const env = environments[idx];
+						return (
+							<div key={option.value} className='relative flex items-center group'>
+								<SelectItem value={option.value} className='flex-1 pr-9'>
+									<div className='flex items-center gap-2 text-muted-foreground min-w-0'>
+										{option.prefixIcon}
+										<span className='block flex-1 min-w-0 truncate pr-2 max-w-[calc(var(--radix-select-trigger-width)-110px)]'>
+											{option.label}
+										</span>
+									</div>
+								</SelectItem>
+								<button
+									type='button'
+									aria-label={`Rename ${option.label}`}
+									onPointerDown={(e) => e.stopPropagation()}
+									onClick={(e) => handleEditClick(env, e)}
+									className='absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-[4px] text-muted-foreground hover:bg-accent hover:text-foreground opacity-60 hover:opacity-100 transition-opacity'>
+									<Pencil className='h-3.5 w-3.5' />
+								</button>
 							</div>
-						</SelectItem>
-					))}
+						);
+					})}
 					<div className='flex flex-col gap-1.5 m-2 text-muted-foreground'>
 						<Button
 							onClick={() => {
@@ -214,6 +238,18 @@ const EnvironmentSelector: React.FC<Props> = ({ disabled = false, className }) =
 				onOpenChange={setIsCopierOpen}
 				sourceEnvironment={currentEnvironment}
 				onEnvironmentCloned={async () => {
+					await refetchEnvironments();
+				}}
+			/>
+
+			<EnvironmentEditor
+				isOpen={isEditorOpen}
+				onOpenChange={(open) => {
+					setIsEditorOpen(open);
+					if (!open) setEditingEnvironment(null);
+				}}
+				environment={editingEnvironment}
+				onEnvironmentUpdated={async () => {
 					await refetchEnvironments();
 				}}
 			/>

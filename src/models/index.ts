@@ -74,9 +74,19 @@ export type { default as FeatureDefault } from './Feature';
 export type { ImportTask } from './ImportTask';
 
 // ScheduledTask
-export type { ScheduledTask, ScheduledTaskJobConfig } from './ScheduledTask';
-export type { ScheduledEntityType, ScheduledTaskInterval } from './ScheduledTask';
-export { SCHEDULED_ENTITY_TYPE, SCHEDULED_TASK_INTERVAL } from './ScheduledTask';
+export type {
+	ScheduledTask,
+	ScheduledTaskJobConfig,
+	ScheduledEntityType,
+	ScheduledTaskInterval,
+	ExportMetadataEntityType,
+} from './ScheduledTask';
+export {
+	SCHEDULED_ENTITY_TYPE,
+	SCHEDULED_TASK_INTERVAL,
+	EXPORT_METADATA_ENTITY_TYPE,
+	ALLOWED_METADATA_ENTITY_TYPES,
+} from './ScheduledTask';
 
 // Integration
 export type { Integration } from './Integration';

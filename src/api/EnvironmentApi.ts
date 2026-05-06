@@ -1,7 +1,13 @@
 import { AxiosClient } from '@/core/axios/verbs';
 import { ACTIVE_ENVIRONMENT_ID_KEY } from '@/hooks/useEnvironment';
 import { Environment } from '@/models';
-import { CloneEnvironmentPayload, CloneEnvironmentResponse, CreateEnvironmentPayload, ListEnvironmentResponse } from '@/types/dto';
+import {
+	CloneEnvironmentPayload,
+	CloneEnvironmentResponse,
+	CreateEnvironmentPayload,
+	ListEnvironmentResponse,
+	UpdateEnvironmentPayload,
+} from '@/types/dto';
 
 class EnvironmentApi {
 	private static baseUrl = '/environments';
@@ -29,6 +35,10 @@ class EnvironmentApi {
 
 	public static async cloneEnvironment(sourceEnvironmentId: string, payload: CloneEnvironmentPayload): Promise<CloneEnvironmentResponse> {
 		return await AxiosClient.post<CloneEnvironmentResponse>(`${this.baseUrl}/${sourceEnvironmentId}/clone`, payload);
+	}
+
+	public static async updateEnvironment(id: string, payload: UpdateEnvironmentPayload): Promise<Environment | null> {
+		return await AxiosClient.put<Environment>(`${this.baseUrl}/${id}`, payload);
 	}
 
 	public static getActiveEnvironmentId(): string | null {

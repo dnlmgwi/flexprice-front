@@ -1,47 +1,26 @@
 import { Loader, Page } from '@/components/atoms';
-import { ApiDocsContent } from '@/components/molecules';
-import WebhookApi from '@/api/WebhookApi';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ApiDocsContent } from '@/components/molecules/ApiDocs/ApiDocs';
+import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { AppPortal } from 'svix-react';
+import 'svix-react/style.css';
 import { EmptyPage } from '@/components/organisms';
-import { useMemo, useEffect } from 'react';
+import { useMemo } from 'react';
 import useEnvironment from '@/hooks/useEnvironment';
+import { PREFETCH_REGISTRY, PrefetchQueryKey } from '@/config/prefetchConfig';
 
 const WebhookDashboard = () => {
-	const queryClient = useQueryClient();
-
 	const { activeEnvironment } = useEnvironment();
+	const envId = activeEnvironment?.id;
+	const prefetch = PREFETCH_REGISTRY[PrefetchQueryKey.WebhookDashboardUrl];
 
 	const { data, isLoading, isError, error } = useQuery({
-		queryKey: ['webhookDashboardUrl', activeEnvironment?.id],
-		queryFn: async () => await WebhookApi.getWebhookDashboardUrl(),
-		// Cache for 5 minutes to reduce API calls
-		staleTime: 5 * 60 * 1000,
-		// Keep data fresh for 10 minutes
-		gcTime: 10 * 60 * 1000,
-		// Retry failed requests up to 2 times
-		retry: 2,
-		// Retry with exponential backoff
-		retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-		// Refetch in background when window regains focus
-		refetchOnWindowFocus: true,
-		// Refetch when network reconnects
-		refetchOnReconnect: true,
-		enabled: !!activeEnvironment?.id,
+		queryKey: prefetch.queryKey(envId ?? ''),
+		queryFn: prefetch.queryFn,
+		staleTime: prefetch.staleTime,
+		gcTime: prefetch.gcTime,
+		enabled: !!envId,
 	});
-
-	// Preload the dashboard URL when component mounts
-	useEffect(() => {
-		// Prefetch the data if not already cached
-		if (!queryClient.getQueryData(['webhookDashboardUrl', activeEnvironment?.id])) {
-			queryClient.prefetchQuery({
-				queryKey: ['webhookDashboardUrl', activeEnvironment?.id],
-				queryFn: async () => await WebhookApi.getWebhookDashboardUrl(),
-				staleTime: 5 * 60 * 1000,
-			});
-		}
-	}, [queryClient, activeEnvironment?.id]);
 
 	// Memoize the AppPortal props to prevent unnecessary re-renders
 	const appPortalProps = useMemo(

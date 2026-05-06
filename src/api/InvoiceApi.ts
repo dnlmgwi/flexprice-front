@@ -4,6 +4,7 @@ import { generateQueryParams } from '@/utils/common/api_helper';
 import AuthService from '@/core/auth/AuthService';
 import EnvironmentApi from '@/api/EnvironmentApi';
 import { SortDirection } from '@/types/common/QueryBuilder';
+import { INVOICE_STATUS } from '@/models/Invoice';
 import {
 	GetInvoicesResponse,
 	InvoiceFilter,
@@ -31,6 +32,8 @@ class InvoiceApi {
 	): Promise<GetInvoicesResponse> {
 		return await this.listInvoices({
 			customer_id: customerId,
+			// Explicitly include all known invoice statuses; backend defaults may exclude some (e.g. SKIPPED).
+			invoice_status: Object.values(INVOICE_STATUS),
 			sort: [
 				{
 					field: 'period_start',

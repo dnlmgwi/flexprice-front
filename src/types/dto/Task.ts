@@ -1,4 +1,12 @@
-import { ImportTask, Pagination, Metadata, ScheduledTask, ScheduledEntityType, ScheduledTaskInterval } from '@/models';
+import {
+	ImportTask,
+	Pagination,
+	Metadata,
+	ScheduledTask,
+	ScheduledEntityType,
+	ScheduledTaskInterval,
+	ExportMetadataEntityType,
+} from '@/models';
 
 export interface AddTaskPayload {
 	entity_type: string;
@@ -52,6 +60,11 @@ export interface CreateScheduledTaskPayload {
 		compression?: string;
 		encryption?: string;
 		max_file_size_mb?: number;
+		export_metadata_fields?: Array<{
+			entity_type: ExportMetadataEntityType;
+			field_key: string;
+			column_name?: string;
+		}>;
 		endpoint_url?: string;
 		use_path_style?: boolean;
 	};

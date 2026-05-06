@@ -96,7 +96,7 @@ const initialSubscriptionFilters: FilterCondition[] = [
 	{
 		field: 'subscription_status',
 		operator: FilterOperator.IN,
-		valueArray: [SUBSCRIPTION_STATUS.ACTIVE, SUBSCRIPTION_STATUS.TRIALING, SUBSCRIPTION_STATUS.DRAFT],
+		valueArray: [SUBSCRIPTION_STATUS.ACTIVE, SUBSCRIPTION_STATUS.TRIALING, SUBSCRIPTION_STATUS.DRAFT, SUBSCRIPTION_STATUS.INCOMPLETE],
 		dataType: DataType.ARRAY,
 		id: 'initial-status',
 	},

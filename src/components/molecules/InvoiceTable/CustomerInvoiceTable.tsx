@@ -2,7 +2,7 @@ import { FC, useMemo } from 'react';
 import FlexpriceTable, { ColumnData, RedirectCell } from '../Table';
 import { getCurrencySymbol } from '@/utils/common/helper_functions';
 import { formatBillingPeriod } from '@/utils/common/format_date';
-import { Invoice, INVOICE_TYPE } from '@/models/Invoice';
+import { Invoice, INVOICE_STATUS, INVOICE_TYPE } from '@/models/Invoice';
 import { getPaymentStatusChip, getStatusChip } from './InvoiceTable';
 import Customer from '@/models/Customer';
 import { RouteNames } from '@/core/routes/Routes';
@@ -34,7 +34,12 @@ const CustomerInvoiceTable: FC<Props> = ({ data, onRowClick }) => {
 		const cols: ColumnData<EnrichedInvoice>[] = [
 			{
 				title: 'Invoice Number',
-				render: (row) => <>{row.invoice_number || '--'}</>,
+				render: (row) =>
+					row.invoice_status?.toUpperCase() === INVOICE_STATUS.DRAFT ? (
+						<span className='text-gray-400 italic text-[13px]'>To be generated</span>
+					) : (
+						<>{row.invoice_number || '--'}</>
+					),
 			},
 			{
 				title: 'Plan',

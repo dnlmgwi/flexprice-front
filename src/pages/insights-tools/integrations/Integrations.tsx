@@ -1,7 +1,7 @@
 import { Loader, Page, Dialog, Card, Button, Divider } from '@/components/atoms';
 import { Integration, integrations } from './integrationsData';
 import { cn } from '@/lib/utils';
-import { PremiumFeature, ApiDocsContent } from '@/components/molecules';
+import { PremiumFeature, ApiDocsContent, PaddleConnectionDrawer } from '@/components/molecules';
 import { useMutation, useQueryClient, useQueries } from '@tanstack/react-query';
 import { Switch } from '@/components/ui/switch';
 import { ExternalLinkIcon, PencilIcon, TrashIcon } from 'lucide-react';
@@ -267,10 +267,28 @@ const Integrations = () => {
 								setActiveIntegration(null);
 							}}
 						/>
+					) : activeIntegration.name.toLowerCase() === CONNECTION_PROVIDER_TYPE.PADDLE ? (
+						<PaddleConnectionDrawer
+							isOpen={isDrawerOpen}
+							onOpenChange={(open: boolean) => {
+								setIsDrawerOpen(open);
+								if (!open) {
+									setEditingConnection(null);
+									setActiveIntegration(null);
+								}
+							}}
+							connection={editingConnection}
+							onSave={() => {
+								connectionQueries.forEach((q) => q.refetch?.());
+								setIsDrawerOpen(false);
+								setEditingConnection(null);
+								setActiveIntegration(null);
+							}}
+						/>
 					) : (
 						<IntegrationDrawer
 							isOpen={isDrawerOpen}
-							onOpenChange={(open) => {
+							onOpenChange={(open: boolean) => {
 								setIsDrawerOpen(open);
 								if (!open) {
 									setEditingConnection(null);

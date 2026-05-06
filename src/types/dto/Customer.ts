@@ -94,6 +94,8 @@ export interface GetCustomerByFiltersPayload extends CustomerFilter {
 	filters?: TypedBackendFilter[];
 	sort?: TypedBackendSort[];
 	status?: ENTITY_STATUS;
+	/** Key-value metadata filters; only customers whose metadata contains all specified pairs are returned. */
+	metadata?: Record<string, string>;
 }
 
 export interface TaxRateOverride {

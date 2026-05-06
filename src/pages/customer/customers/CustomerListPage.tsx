@@ -16,6 +16,7 @@ import {
 	SortDirection,
 	FilterCondition,
 } from '@/types/common/QueryBuilder';
+import { extractMetadataFromTypedFilters, METADATA_TYPED_FILTER_FIELD } from '@/types/formatters/QueryBuilder';
 import { ENTITY_STATUS } from '@/models';
 import { useNavigate } from 'react-router';
 import { RouteNames } from '@/core/routes/Routes';
@@ -114,6 +115,13 @@ const filterOptions: FilterField[] = [
 			{ value: ENTITY_STATUS.PUBLISHED, label: 'Active' },
 			{ value: ENTITY_STATUS.ARCHIVED, label: 'Inactive' },
 		],
+	},
+	{
+		field: METADATA_TYPED_FILTER_FIELD,
+		label: 'Metadata',
+		fieldType: FilterFieldType.METADATA,
+		operators: [FilterOperator.EQUAL],
+		dataType: DataType.STRING,
 	},
 ];
 
@@ -221,7 +229,14 @@ const CustomerListPage = () => {
 				}}
 				dataConfig={{
 					queryKey: 'fetchCustomers',
-					fetchFn: async (params) => CustomerApi.getCustomersByFilters({ ...params }),
+					fetchFn: async (params) => {
+						const { filters, metadata } = extractMetadataFromTypedFilters(params.filters);
+						return CustomerApi.getCustomersByFilters({
+							...params,
+							filters,
+							...(metadata ? { metadata } : {}),
+						});
+					},
 					probeFetchFn: async (params) =>
 						CustomerApi.getCustomersByFilters({
 							...params,

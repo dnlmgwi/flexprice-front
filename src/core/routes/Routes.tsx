@@ -3,6 +3,8 @@ import { createBrowserRouter, Navigate } from 'react-router';
 import AuthMiddleware from '../auth/AuthProvider';
 import { useUser } from '@/hooks/UserContext';
 import { TenantMetadataKey } from '@/models/Tenant';
+import { Suspense } from 'react';
+import { Loader } from '@/components/atoms';
 import {
 	// Auth pages
 	Auth,
@@ -72,7 +74,7 @@ import {
 	OnboardingTenant,
 	PricingSetupPage,
 	// Webhooks pages
-	WebhookDashboard,
+	WebhookDashboardLazy,
 	// Settings pages
 	Billing as BillingPage,
 	SettingsDashboard,
@@ -198,7 +200,7 @@ const DefaultRoute = () => {
 	return <Navigate to={onboardingCompleted ? RouteNames.homeDashboard : RouteNames.onboarding} />;
 };
 
-export const MainRouter = createBrowserRouter([
+export const MainRouter: any = createBrowserRouter([
 	// public routes
 	{
 		path: RouteNames.login,
@@ -513,7 +515,16 @@ export const MainRouter = createBrowserRouter([
 				children: [
 					{
 						path: RouteNames.webhooks,
-						element: <WebhookDashboard />,
+						element: (
+							<Suspense
+								fallback={
+									<div className='flex h-96 w-full items-center justify-center'>
+										<Loader />
+									</div>
+								}>
+								<WebhookDashboardLazy />
+							</Suspense>
+						),
 					},
 					{
 						path: RouteNames.apiKeys,

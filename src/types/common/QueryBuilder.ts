@@ -54,6 +54,8 @@ export enum FilterFieldType {
 	MULTI_SELECT = 'MULTI_SELECT',
 	ASYNC_SELECT = 'ASYNC_SELECT',
 	ASYNC_MULTI_SELECT = 'ASYNC_MULTI_SELECT',
+	/** Key-value metadata filter — renders an inline key=value pair editor instead of operator+value. */
+	METADATA = 'METADATA',
 }
 
 // Ultra-simple config - just provide searchFn
@@ -119,6 +121,7 @@ export const ALLOWED_OPERATORS_PER_TYPE: Record<FilterFieldType, FilterOperator[
 	[FilterFieldType.MULTI_SELECT]: [FilterOperator.IN, FilterOperator.NOT_IN],
 	[FilterFieldType.ASYNC_SELECT]: [FilterOperator.EQUAL],
 	[FilterFieldType.ASYNC_MULTI_SELECT]: [FilterOperator.IN, FilterOperator.NOT_IN],
+	[FilterFieldType.METADATA]: [FilterOperator.EQUAL],
 };
 
 // Default operators per data type - matches backend supported operators

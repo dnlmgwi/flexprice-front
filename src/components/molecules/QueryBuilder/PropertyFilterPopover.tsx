@@ -65,6 +65,8 @@ const getDefaultValueByFieldType = (field: FilterField) => {
 			return { valueArray: [] };
 		case FilterFieldType.ASYNC_SELECT:
 			return { valueString: field.asyncConfig?.initialOptions?.[0]?.value || '' };
+		case FilterFieldType.METADATA:
+			return { valueString: '' };
 		default:
 			return { valueString: '' };
 	}
@@ -250,7 +252,7 @@ const PropertyFilterPopover: React.FC<Props> = ({
 			// Handle non-async field types - TypeScript now knows fieldType is not async
 			const nonAsyncFieldType = field.fieldType as Exclude<
 				FilterFieldType,
-				FilterFieldType.ASYNC_SELECT | FilterFieldType.ASYNC_MULTI_SELECT
+				FilterFieldType.ASYNC_SELECT | FilterFieldType.ASYNC_MULTI_SELECT | FilterFieldType.METADATA
 			>;
 			const component = valueComponents[nonAsyncFieldType];
 			return component || valueComponents[FilterFieldType.INPUT];

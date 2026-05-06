@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Trash2, GripVertical, ListFilter, X } from 'lucide-react';
+import { Trash2, GripVertical, ListFilter, X, Plus } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { Combobox, DatePicker, Toggle, Button, Select } from '@/components/atoms';
@@ -32,6 +32,30 @@ const POPOVER_PADDING = 'px-4 py-3';
 const GRID_GAP = 'gap-1.5';
 const ITEM_PADDING = 'py-1.5 px-2';
 
+interface MetadataPair {
+	key: string;
+	value: string;
+}
+
+const parseMetadataPairs = (valueString: string | undefined): MetadataPair[] => {
+	if (valueString == null || valueString.trim() === '') return [{ key: '', value: '' }];
+	try {
+		const parsed = JSON.parse(valueString);
+		if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+	} catch {
+		// ignore
+	}
+	return [{ key: '', value: '' }];
+};
+
+const updateMetadataPairAt = (pairs: MetadataPair[], index: number, field: keyof MetadataPair, val: string): MetadataPair[] =>
+	pairs.map((p, i) => (i === index ? { ...p, [field]: val } : p));
+
+const removeMetadataPairAt = (pairs: MetadataPair[], index: number): MetadataPair[] => {
+	const next = pairs.filter((_, i) => i !== index);
+	return next.length > 0 ? next : [{ key: '', value: '' }];
+};
+
 const getDefaultValueByFieldType = (field: FilterField) => {
 	switch (field.fieldType) {
 		case FilterFieldType.DATEPICKER:
@@ -49,6 +73,8 @@ const getDefaultValueByFieldType = (field: FilterField) => {
 			return { valueArray: [] };
 		case FilterFieldType.ASYNC_SELECT:
 			return { valueString: field.asyncConfig?.initialOptions?.[0]?.value || '' };
+		case FilterFieldType.METADATA:
+			return { valueString: '' };
 		default:
 			return { valueString: '' };
 	}
@@ -223,10 +249,10 @@ const FilterPopover: React.FC<Props> = ({ fields, value = [], onChange, classNam
 				);
 			}
 
-			// Handle non-async field types - TypeScript now knows fieldType is not async
+			// Handle non-async field types - TypeScript now knows fieldType is not async or metadata
 			const nonAsyncFieldType = field.fieldType as Exclude<
 				FilterFieldType,
-				FilterFieldType.ASYNC_SELECT | FilterFieldType.ASYNC_MULTI_SELECT
+				FilterFieldType.ASYNC_SELECT | FilterFieldType.ASYNC_MULTI_SELECT | FilterFieldType.METADATA
 			>;
 			const component = valueComponents[nonAsyncFieldType];
 			return component || valueComponents[FilterFieldType.INPUT];
@@ -250,11 +276,21 @@ const FilterPopover: React.FC<Props> = ({ fields, value = [], onChange, classNam
 		[fields],
 	);
 
-	// calculate the total number of filters
+	// calculate the total number of filters (metadata filters counted only when they have ≥1 valid pair)
 	const appliedFilters = useMemo(() => {
-		const sanitizedValue = sanitizeFilterConditions(value);
-		return sanitizedValue.length;
-	}, [value]);
+		const [metadataConditions, regularConditions] = value.reduce<[FilterCondition[], FilterCondition[]]>(
+			([m, r], condition) => {
+				const field = fields.find((f) => f.field === condition.field);
+				return field?.fieldType === FilterFieldType.METADATA ? [[...m, condition], r] : [m, [...r, condition]];
+			},
+			[[], []],
+		);
+		const regularCount = sanitizeFilterConditions(regularConditions).length;
+		const metadataCount = metadataConditions.filter((c) =>
+			parseMetadataPairs(c.valueString).some((p) => p.key?.trim() && p.value?.trim()),
+		).length;
+		return regularCount + metadataCount;
+	}, [value, fields]);
 
 	return (
 		<Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -300,14 +336,129 @@ const FilterPopover: React.FC<Props> = ({ fields, value = [], onChange, classNam
 								</Button>
 							</div>
 
-							<Sortable value={value} onValueChange={handleReorder} getItemValue={(item) => item.field}>
+							<Sortable value={value} onValueChange={handleReorder} getItemValue={(item) => item.id}>
 								<SortableContent className='flex flex-col gap-1'>
 									{value.map((filter, index) => {
 										const field = fields.find((f) => f.field === filter.field);
 										if (!field) return null;
 
+										const isMetadata = field.fieldType === FilterFieldType.METADATA;
+
+										if (isMetadata) {
+											const metaPairs = parseMetadataPairs(filter.valueString);
+											const setMetaPairs = (next: MetadataPair[]) => handleFilterUpdate(filter.id, { valueString: JSON.stringify(next) });
+											const first = metaPairs[0] ?? { key: '', value: '' };
+											return (
+												<SortableItem key={filter.id} value={filter.id}>
+													<div className='flex flex-col gap-1'>
+														{/* Aligns with standard rows: col3 = operator width, col4 = value width */}
+														<div
+															className={cn(
+																'grid items-center',
+																GRID_GAP,
+																ITEM_PADDING,
+																'w-full rounded hover:bg-accent/40 transition-colors',
+															)}
+															style={gridTemplateColumns}>
+															<span className='text-xs text-muted-foreground'>{index > 0 ? 'And' : 'Where'}</span>
+															<Combobox
+																options={fieldOptions}
+																value={filter.field}
+																onChange={(value) => handleFieldChange(filter.id, value)}
+																placeholder='Select field'
+																width='100%'
+																triggerClassName='h-9 text-sm overflow-hidden'
+																searchPlaceholder='Search fields...'
+																contentClassName='!z-[110]'
+															/>
+															<Input
+																value={first.key}
+																onChange={(e) => setMetaPairs(updateMetadataPairAt(metaPairs, 0, 'key', e.target.value))}
+																placeholder='Key'
+																className='h-9 text-sm min-w-0'
+															/>
+															<Input
+																value={first.value}
+																onChange={(e) => setMetaPairs(updateMetadataPairAt(metaPairs, 0, 'value', e.target.value))}
+																placeholder='Value'
+																className='h-9 text-sm min-w-0'
+															/>
+															<div className='flex items-center gap-1 justify-end'>
+																<Button
+																	variant='ghost'
+																	size='icon'
+																	className='h-7 w-7 shrink-0 hover:bg-destructive/10 hover:text-destructive'
+																	onClick={() => handleRemoveFilter(filter.id)}>
+																	<Trash2 className='h-3.5 w-3.5' />
+																</Button>
+																{sortable && (
+																	<SortableItemHandle asChild>
+																		<Button variant='ghost' size='icon' className='h-7 w-7 shrink-0'>
+																			<GripVertical className='h-3.5 w-3.5' />
+																		</Button>
+																	</SortableItemHandle>
+																)}
+															</div>
+														</div>
+														{metaPairs.slice(1).map((pair, pairIdx) => {
+															const i = pairIdx + 1;
+															return (
+																<div
+																	key={`${filter.id}-meta-${i}`}
+																	className={cn(
+																		'grid items-center',
+																		GRID_GAP,
+																		ITEM_PADDING,
+																		'w-full rounded hover:bg-accent/40 transition-colors',
+																	)}
+																	style={gridTemplateColumns}>
+																	<div className='h-9 min-w-0' aria-hidden />
+																	<div className='h-9 min-w-0' aria-hidden />
+																	<Input
+																		value={pair.key}
+																		onChange={(e) => setMetaPairs(updateMetadataPairAt(metaPairs, i, 'key', e.target.value))}
+																		placeholder='Key'
+																		className='h-9 text-sm min-w-0'
+																	/>
+																	<Input
+																		value={pair.value}
+																		onChange={(e) => setMetaPairs(updateMetadataPairAt(metaPairs, i, 'value', e.target.value))}
+																		placeholder='Value'
+																		className='h-9 text-sm min-w-0'
+																	/>
+																	<div className='flex items-center justify-end'>
+																		<Button
+																			variant='ghost'
+																			size='icon'
+																			className='h-7 w-7 shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
+																			onClick={() => setMetaPairs(removeMetadataPairAt(metaPairs, i))}>
+																			<X className='h-3.5 w-3.5' />
+																		</Button>
+																	</div>
+																</div>
+															);
+														})}
+														<div className={cn('grid items-center', GRID_GAP, 'px-2 py-0.5')} style={gridTemplateColumns}>
+															<div style={{ gridColumn: '3 / 4' }} className='min-w-0' aria-hidden />
+															<div className='flex min-w-0 items-center justify-end'>
+																<Button
+																	variant='ghost'
+																	size='sm'
+																	className='h-8 w-fit px-2 text-xs text-muted-foreground hover:text-foreground gap-1'
+																	onClick={() => setMetaPairs([...metaPairs, { key: '', value: '' }])}>
+																	<Plus className='h-3 w-3' />
+																	Add pair
+																</Button>
+															</div>
+															<div className='min-w-0' aria-hidden />
+														</div>
+													</div>
+												</SortableItem>
+											);
+										}
+
 										return (
-											<SortableItem key={filter.id} value={filter.field}>
+											<SortableItem key={filter.id} value={filter.id}>
 												<div
 													className={cn('grid items-center', GRID_GAP, ITEM_PADDING, 'w-full rounded hover:bg-accent/40 transition-colors')}
 													style={gridTemplateColumns}>
@@ -379,10 +530,10 @@ const FilterPopover: React.FC<Props> = ({ fields, value = [], onChange, classNam
 
 							<div className='flex items-center gap-2 pt-1.5 px-2'>
 								<Button size='sm' onClick={handleAddFilter} className='h-9 text-sm px-2.5 flex items-center gap-1'>
-									Add filter
+									Add
 								</Button>
 								<Button variant='outline' size='sm' onClick={() => onChange([])} className='h-9 text-sm px-2.5'>
-									Reset filters
+									Reset
 								</Button>
 							</div>
 						</div>

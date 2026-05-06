@@ -169,6 +169,57 @@ export const sanitizeFilterConditions = (conditions: FilterCondition[]): TypedBa
 };
 
 /**
+ * `field` value for metadata key-value rows serialized as JSON in `value.string`
+ * (see `FilterFieldType.METADATA` in the query builder UI).
+ */
+export const METADATA_TYPED_FILTER_FIELD = 'metadata';
+
+export interface ExtractMetadataFromTypedFiltersResult {
+	/** Filters with metadata pseudo-filters removed (safe for generic search APIs). */
+	filters: TypedBackendFilter[];
+	/** Present only when at least one non-blank key/value pair was parsed. */
+	metadata?: Record<string, string>;
+}
+
+/**
+ * Pulls customer-style metadata out of a typed filter array: every filter whose `field`
+ * is {@link METADATA_TYPED_FILTER_FIELD} is removed, and each `value.string` (JSON array
+ * of `{ key, value }`) is merged into a single `metadata` object (later entries override
+ * duplicate keys).
+ */
+export const extractMetadataFromTypedFilters = (
+	filters: TypedBackendFilter[] | undefined | null,
+): ExtractMetadataFromTypedFiltersResult => {
+	const list = filters ?? [];
+	const regularFilters = list.filter((f) => f.field !== METADATA_TYPED_FILTER_FIELD);
+	const metadataFilters = list.filter((f) => f.field === METADATA_TYPED_FILTER_FIELD);
+	const obj: Record<string, string> = {};
+
+	for (const metadataFilter of metadataFilters) {
+		const raw = metadataFilter?.value?.string?.trim();
+		if (!raw) continue;
+
+		try {
+			const pairs: unknown = JSON.parse(raw);
+			if (!Array.isArray(pairs)) continue;
+			for (const item of pairs) {
+				if (item == null || typeof item !== 'object') continue;
+				const key = 'key' in item && typeof (item as { key: unknown }).key === 'string' ? (item as { key: string }).key : '';
+				const value = 'value' in item && typeof (item as { value: unknown }).value === 'string' ? (item as { value: string }).value : '';
+				if (key.trim() && value.trim()) obj[key.trim()] = value.trim();
+			}
+		} catch {
+			// Invalid JSON for this pseudo-filter only; continue merging other entries.
+		}
+	}
+
+	if (Object.keys(obj).length === 0) {
+		return { filters: regularFilters };
+	}
+	return { filters: regularFilters, metadata: obj };
+};
+
+/**
  * Converts filter conditions to backend query payload
  */
 export const convertFilterConditionToQuery = (conditions: FilterCondition[]): TypedBackendQueryPayload => {

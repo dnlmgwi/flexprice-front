@@ -22,6 +22,19 @@ const MultichipField = React.forwardRef<HTMLInputElement, InputProps>(
 			setchips(value || []);
 		}, [value]);
 
+		const commitInputAsChip = () => {
+			const trimmedText = inputText.trim();
+			if (!trimmedText) return;
+
+			if (!chips.includes(trimmedText)) {
+				const updatedChips = [...chips, trimmedText];
+				setchips(updatedChips);
+				onChange?.(updatedChips);
+			}
+
+			setinputText('');
+		};
+
 		return (
 			<div className='space-y-1 w-full'>
 				{label && (
@@ -64,16 +77,13 @@ const MultichipField = React.forwardRef<HTMLInputElement, InputProps>(
 								placeholder={chips.length > 0 ? '' : placeholder}
 								className='peer flex-1 h-full bg-transparent  outline-none ring-0 focus:outline-none w-full'
 								onChange={(e) => setinputText(e.target.value)}
+								onBlur={() => {
+									commitInputAsChip();
+								}}
 								onKeyDown={(e) => {
-									if (e.key === ' ') {
+									if (e.key === ' ' || e.key === 'Enter') {
 										e.preventDefault();
-										const trimmedText = inputText.trim();
-										if (trimmedText && !chips.includes(trimmedText)) {
-											const updatedChips = [...chips, trimmedText];
-											setchips(updatedChips);
-											onChange?.(updatedChips);
-										}
-										if (trimmedText) setinputText('');
+										commitInputAsChip();
 									}
 								}}
 								ref={ref}
